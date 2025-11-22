@@ -236,6 +236,39 @@
 
     function updateScoreUI(){ scoreDisplay.textContent=score; if(score>highScore){ highScore=score; highscoreDisplay.textContent=highScore; } }
     function updateTimerDisplay(){ const m=Math.floor(timeLeft/60); const s=timeLeft%60; timeDisplay.textContent=`${m}:${s<10?'0':''}${s}`; }
+
+    // Ensure fetchHighScore exists — previously missing which caused startGame() to throw a ReferenceError
+    // This will attempt to update the displayed high score and (if possible) fetch the latest leaderboard
+    async function fetchHighScore(){
+      try{
+        // Prefer the backend sources to update the high score
+        if (useSheets) {
+          // fetch top from sheets and set highScore
+          const res = await fetch(`${SHEETS_WEBAPP_URL}?action=list`);
+          const json = await res.json();
+          if (json && Array.isArray(json.items) && json.items.length>0){
+            highScore = Number(json.items.slice().sort((a,b)=>b.score-a.score)[0].score) || highScore;
+            highscoreDisplay.textContent = highScore;
+            return;
+          }
+        } else if (useFirestore && db) {
+          // try to get top score from Firestore collection (best-effort)
+          try{
+            const colRef = getLeaderboardCollectionRef();
+            const qref = query(colRef);
+            const snap = await getDocs(qref);
+            const arr = [];
+            snap.forEach(d=>arr.push(d.data()));
+            if(arr.length>0){ arr.sort((a,b)=>b.score-a.score); highScore = arr[0].score || highScore; highscoreDisplay.textContent = highScore; return; }
+          }catch(e){ /* ignore */ }
+        }
+
+        // fallback: just update from local variable or localStorage
+        const local = readLocalLeaderboard();
+        if (local && local.length>0){ local.sort((a,b)=>b.score-a.score); highScore = local[0].score || highScore; }
+        highscoreDisplay.textContent = highScore;
+      }catch(e){ console.warn('fetchHighScore failed', e); highscoreDisplay.textContent = highScore; }
+    }:${s<10?'0':''}${s}`; }
     function updateAnsweredQuestionsList(){ const list=document.getElementById('answered-questions-list'); if(answeredQuestions.length===0){ list.innerHTML='<p>Tiada soalan dijawab lagi.</p>'; return; } list.innerHTML=''; answeredQuestions.forEach(item=>{ const div=document.createElement('div'); div.style.padding='6px'; div.style.borderBottom='1px solid #2d2d2d'; const qText=item.q.length>50?item.q.substring(0,50)+'...':item.q; const color=item.isCorrect?'#22c55e':'#ef4444'; div.innerHTML=`<div style="font-weight:bold;color:${color}">${item.isCorrect?'BETUL':'SALAH'}</div><div style="font-size:12px">${qText}</div><div style="font-style:italic;font-size:12px">Jawapan anda: ${item.a}</div>`; list.appendChild(div); }); }
 
     // --- Leaderboard implementations (Sheets / Firestore / localStorage) ---
