@@ -1,314 +1,1514 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ms">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tetris Peribahasa</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
   <style>
-    /* Styling ringkas (ambik dari versi asal) */
-    :root { --bg: #1a1a2e; --panel:#0b0b12; --accent:#4af626; --pink:#f92a82; }
-    html,body{height:100%;margin:0;padding:0;background:var(--bg);color:#e0e0e0;font-family:'Inter',sans-serif}
-    .font-retro{font-family:'Press Start 2P',cursive}
-    .btn-retro{display:inline-block;padding:12px 16px;border:4px solid var(--pink);background:transparent;color:#fff;cursor:pointer;font-family:'Press Start 2P',cursive}
-    canvas{background:#111;border:4px solid var(--accent);display:block}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:999}
-    .modal-content{background:var(--bg);border:4px solid var(--accent);padding:1.5rem;max-width:700px;width:94%;max-height:90vh;overflow:auto}
-    .hidden{display:none}
-  </style>
-</head>
-<body class="flex items-center justify-center min-h-screen p-4">
-
-  <!-- MAIN GAME LAYOUT (sama seperti sebelumnya) -->
-  <div id="game-container" style="display:none; width:100%; max-width:980px;">
-    <h1 class="font-retro" style="text-align:center;color:var(--pink);font-size:28px;margin-bottom:16px;">TETRIS PERIBAHASA</h1>
-    <div style="display:flex;gap:16px;align-items:flex-start;">
-      <div style="width:220px">
-        <div style="background:#000;padding:12px;border:2px dashed #f59e0b;margin-bottom:12px;text-align:center;font-family: 'Press Start 2P';">
-          <div style="color:#f59e0b">MASA</div><div id="time-display" style="font-size:24px">3:00</div>
-        </div>
-        <div style="background:#000;padding:12px;border:2px dashed #06b6d4;margin-bottom:12px;text-align:center;font-family: 'Press Start 2P';">
-          <div style="color:#06b6d4">SKOR</div><div id="score-display" style="font-size:24px">0</div>
-        </div>
-        <div style="background:#000;padding:12px;border:2px dashed #fb7185;margin-bottom:12px;text-align:center;font-family: 'Press Start 2P';">
-          <div style="color:#fb7185">SKOR TERTINGGI</div><div id="highscore-display" style="font-size:24px">0</div>
-        </div>
-        <button id="pause-button" class="btn-retro" style="width:100%;margin-top:8px;">MENU</button>
-      </div>
-
-      <div style="flex:1;display:flex;justify-content:center;">
-        <canvas id="tetris-canvas" width="300" height="600"></canvas>
-      </div>
-
-      <div style="width:220px"></div>
-    </div>
-
-    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;" class="mobile-controls">
-      <button id="move-left-btn" class="btn-retro">&lt;</button>
-      <button id="rotate-btn" class="btn-retro">^</button>
-      <button id="move-right-btn" class="btn-retro">&gt;</button>
-      <button id="move-down-btn" class="btn-retro">v</button>
-    </div>
-  </div>
-
-  <!-- WELCOME / NAME modal -->
-  <div id="welcome-modal" class="modal">
-    <div class="modal-content text-center">
-      <h2 class="font-retro" style="color:#f59e0b;margin-bottom:12px;">SELAMAT DATANG!</h2>
-      <p>Sila masukkan nama anda untuk bermain:</p>
-      <input id="name-input" style="width:100%;padding:8px;margin:12px 0;border-radius:6px;border:1px solid #ccc;font-size:16px;color:#000" placeholder="Nama Pemain..." />
-      <p id="name-error" style="color:#f87171;display:none;margin-top:-8px;">Sila masukkan nama anda!</p>
-      <button id="start-button" class="btn-retro" style="width:100%;margin-top:12px;">Mula Main!</button>
-
-      <h3 class="font-retro" style="color:#06b6d4;margin-top:16px;">LEADERBOARD</h3>
-      <div id="leaderboard-welcome" style="background:#000;padding:12px;border:1px solid #06b6d4;border-radius:6px;height:160px;overflow:auto;margin-top:8px;text-align:left;">Memuatkan data...</div>
-    </div>
-  </div>
-
-  <!-- QUIZ modal -->
-  <div id="quiz-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2 class="font-retro" style="text-align:center;color:#f59e0b;margin-bottom:8px;">SOALAN PERIBAHASA!</h2>
-      <p id="question-text" style="text-align:center;font-size:18px;margin-bottom:12px;"></p>
-      <div id="answer-options" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
-    </div>
-  </div>
-
-  <!-- PAUSE modal -->
-  <div id="pause-modal" class="modal hidden">
-    <div class="modal-content text-center">
-      <h2 class="font-retro" style="color:#f59e0b;margin-bottom:12px;">MENU</h2>
-      <button id="resume-button" class="btn-retro" style="width:100%;margin-bottom:8px;">Sambung Main</button>
-      <button id="exit-button" class="btn-retro" style="width:100%;background:#ef4444;border-color:#ef4444;margin-bottom:8px;">Keluar</button>
-      <h3 class="font-retro" style="color:#06b6d4;margin-top:8px;">SOALAN DIJAWAB</h3>
-      <div id="answered-questions-list" style="background:#000;padding:12px;border:1px solid #06b6d4;border-radius:6px;height:160px;overflow:auto;margin-top:8px;text-align:left;">Tiada soalan dijawab lagi.</div>
-    </div>
-  </div>
-
-  <!-- GAMEOVER modal -->
-  <div id="gameover-modal" class="modal hidden">
-    <div class="modal-content text-center">
-      <h2 class="font-retro" style="color:#ef4444;margin-bottom:8px;">PERMAINAN TAMAT!</h2>
-      <p id="funny-message" style="margin-bottom:12px;"></p>
-      <p class="font-retro" style="color:#f59e0b;margin-bottom:12px;">SKOR AKHIR: <span id="final-score">0</span></p>
-      <button id="play-again-button" class="btn-retro" style="width:100%;margin-bottom:8px;">Main Semula</button>
-      <h3 class="font-retro" style="color:#06b6d4;margin-top:8px;">LEADERBOARD TERKINI</h3>
-      <div id="leaderboard-gameover" style="background:#000;padding:12px;border:1px solid #06b6d4;border-radius:6px;height:160px;overflow:auto;margin-top:8px;text-align:left;"></div>
-    </div>
-  </div>
-
-  <!-- LOADING modal (used briefly) -->
-  <div id="loading-modal" class="modal hidden">
-    <div class="modal-content text-center">
-      <h2 class="font-retro">MEMUATKAN...</h2>
-      <p>Menyambung ke pangkalan data permainan...</p>
-    </div>
-  </div>
-
-  <!-- ==========================================================
-       PLACE TO INJECT CONFIG (replace values with your Firebase config
-       if you want Firestore; OR set __sheets_webapp_url to point to
-       your deployed Apps Script endpoint for Google Sheets backend)
-       ==========================================================
-  -->
-
-  <script>
-    // By default nothing is injected. When you host on GitHub Pages, edit this file
-    // and replace the placeholders below with your real values.
-
-    // Example Firebase (optional):
-    // window.__firebase_config = {
-    //   apiKey: "AIza...",
-    //   authDomain: "your-app.firebaseapp.com",
-    //   projectId: "your-project-id",
-    //   storageBucket: "your-project-id.appspot.com",
-    //   messagingSenderId: "...",
-    //   appId: "1:...:web:..."
-    // };
-    // window.__app_id = window.__firebase_config ? window.__firebase_config.projectId : 'default-app-id';
-
-    // Example Google Sheets WebApp URL (optional):
-    // window.__sheets_webapp_url = 'https://script.google.com/macros/s/AKfycbx.../exec';
-  </script>
-
-  <!-- MAIN SCRIPT (module) -->
-  <script type="module">
-    // Full game + leaderboard client.
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, query, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // Read injected config (if any)
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-    const SHEETS_WEBAPP_URL = typeof __sheets_webapp_url !== 'undefined' ? __sheets_webapp_url : null;
-
-    let db = null, auth = null, userId = null;
-    let isAuthReady = false;
-    let useFirestore = false;
-    const useSheets = !!SHEETS_WEBAPP_URL;
-
-    // localStorage key
-    const LS_KEY = `tetris_leaderboard_${appId}`;
-
-    function parseFirebaseConfigHasProjectId(cfg){ try{return cfg && cfg.projectId;}catch(e){return false;} }
-    function getLeaderboardCollectionRef(){ if(!db) throw new Error('Firestore not initialized'); return collection(db, `artifacts/${appId}/public/data/leaderboard`); }
-
-    try{
-      if(!useSheets && parseFirebaseConfigHasProjectId(firebaseConfig)){
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        try{ setLogLevel('Debug'); }catch(e){}
-        useFirestore = true;
-        console.log('Firebase initialized — Firestore enabled');
-      } else if(useSheets){
-        console.log('Using Google Sheets webapp for leaderboard (SHEETS_WEBAPP_URL provided)');
-      } else {
-        console.warn('No Firebase config and no Sheets URL — using localStorage fallback');
-      }
-    }catch(e){
-      console.error('Firebase initialization failed:', e);
-      useFirestore = false;
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      min-height: 100%;
+      overflow-x: hidden;
     }
 
-    // --- Game variables ---
-    const canvas = document.getElementById('tetris-canvas');
-    const ctx = canvas.getContext('2d');
-    const COLS = 10, ROWS = 20, BLOCK_SIZE = 30;
-    canvas.width = COLS * BLOCK_SIZE; canvas.height = ROWS * BLOCK_SIZE; ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
+    .retro-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.1;
+      pointer-events: none;
+      z-index: 0;
+      background-image: 
+        repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, #fff 2px, #fff 4px);
+    }
 
-    let board = createBoard(); let activePiece; let score = 0; let highScore = 0; let timeLeft = 180; let gameTimer; let countdownTimer; let isPaused=false; let isGameOver=false; let isQuizActive=false; let playerName='';
-    let shuffledQuestions = []; let currentQuestionIndex = 0; let answeredQuestions = [];
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
 
-    const questions = [
-      { q: "Seseorang yang mempunyai niat tersembunyi di sebalik pertolongannya. Peribahasanya ialah...", o: ["Ada udang di sebalik batu", "Ada gula ada semut", "Air dicincang takkan putus", "Bagai aur dengan tebing"], a: 0 },
-      { q: "Orang yang suka membaca buku dipanggil...", o: ["Kaki bangku", "Ulat buku", "Kutu embun", "Kaki ayam"], a: 1 },
-      { q: "Maksud bagi peribahasa 'bagai aur dengan tebing' ialah...", o: ["Pergaduhan", "Suka membaca", "Hubungan yang erat dan saling membantu", "Orang yang malas"], a: 2 },
-      { q: "Seseorang yang tidak pandai bermain bola sering diejek sebagai...", o: ["Kaki bangku", "Kaki botol", "Kaki ayam", "Kaki gaduh"], a: 0 },
-      { q: "Peribahasa yang membawa maksud orang yang sempit pengetahuannya ialah...", o: ["Seperti katak di bawah tempurung", "Seperti anjing dengan kucing", "Seperti tikus membaiki labu", "Seperti kera mendapat bunga"], a: 0 },
-      { q: "Maksud 'ringan tulang' ialah...", o: ["Tulang yang ringan", "Sakit tulang", "Orang yang rajin bekerja", "Orang yang pemalas"], a: 2 },
-      { q: "Apakah maksud peribahasa 'mencari akal'?", o: ["Menjual otak", "Membeli akal", "Berfikir untuk menyelesaikan masalah", "Menjadi gila"], a: 2 },
-      { q: "Peribahasa untuk orang yang degil dan tidak mahu mendengar nasihat.", o: ["Hati batu", "Hati emas", "Buah hati", "Ambil hati"], a: 0 },
-      { q: "Pergaduhan antara adik-beradik tidak akan berpanjangan. Peribahasa yang sesuai ialah...", o: ["Bagai isi dengan kuku", "Air dicincang takkan putus", "Anak angkat", "Anak emas"], a: 1 },
-      { q: "Sikap tidak adil dalam membuat keputusan. Peribahasanya ialah...", o: ["Pilih kasih", "Pilih bulu", "Pilih-pilih", "Pilih hati"], a: 0 }
+    .game-title {
+      text-align: center;
+      font-size: 48px;
+      font-weight: bold;
+      text-shadow: 4px 4px 0 #000, -2px -2px 0 #ff00ff, 2px 2px 0 #00ffff;
+      margin-bottom: 30px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .screen {
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .start-screen {
+      background: rgba(0, 0, 0, 0.8);
+      border: 4px solid #ffff00;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(255, 255, 0, 0.5);
+    }
+
+    .welcome-text {
+      font-size: 24px;
+      margin-bottom: 30px;
+      color: #00ffff;
+    }
+
+    .name-input {
+      width: 100%;
+      max-width: 300px;
+      padding: 15px;
+      font-size: 18px;
+      border: 3px solid #ff00ff;
+      border-radius: 10px;
+      background: #000;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .btn {
+      padding: 15px 40px;
+      font-size: 20px;
+      font-weight: bold;
+      border: 3px solid;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      transition: all 0.3s;
+      margin: 10px;
+      text-transform: uppercase;
+    }
+
+    .btn-start {
+      background: #00ff00;
+      color: #000;
+      border-color: #00ff00;
+    }
+
+    .btn-start:hover {
+      background: #00cc00;
+      transform: scale(1.1);
+    }
+
+    .btn-menu {
+      background: #ffff00;
+      color: #000;
+      border-color: #ffff00;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    .btn-menu:hover {
+      background: #cccc00;
+    }
+
+    .leaderboard {
+      background: rgba(0, 0, 0, 0.8);
+      border: 3px solid #ff00ff;
+      border-radius: 15px;
+      padding: 20px;
+      margin: 20px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .leaderboard-title {
+      font-size: 28px;
+      color: #ffff00;
+      text-align: center;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      margin: 5px 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      border-left: 4px solid #00ffff;
+    }
+
+    .leaderboard-item.top3 {
+      border-left-color: #ffd700;
+      background: rgba(255, 215, 0, 0.2);
+    }
+
+    .game-screen {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .game-panel {
+      background: rgba(0, 0, 0, 0.8);
+      border: 4px solid #00ffff;
+      border-radius: 15px;
+      padding: 20px;
+    }
+
+    .game-board {
+      width: 300px;
+      height: 600px;
+      background: #000;
+      border: 3px solid #ff00ff;
+      position: relative;
+      display: grid;
+      grid-template-rows: repeat(20, 1fr);
+      grid-template-columns: repeat(10, 1fr);
+    }
+
+    .cell {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .cell.filled {
+      border: 1px solid rgba(0, 0, 0, 0.3);
+    }
+
+    .info-panel {
+      width: 250px;
+    }
+
+    .info-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border: 2px solid #00ff00;
+    }
+
+    .info-label {
+      font-size: 14px;
+      color: #ffff00;
+      margin-bottom: 5px;
+    }
+
+    .info-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #00ffff;
+    }
+
+    .timer {
+      font-size: 36px;
+      color: #ff0000;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .question-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .question-overlay.active {
+      display: flex;
+    }
+
+    .question-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 4px solid #ffff00;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 0 50px rgba(255, 255, 0, 0.5);
+    }
+
+    .question-text {
+      font-size: 24px;
+      margin-bottom: 30px;
+      color: #fff;
+      text-align: center;
+    }
+
+    .answer-btn {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      font-size: 18px;
+      border: 3px solid #00ffff;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Courier New', monospace;
+      text-align: left;
+    }
+
+    .answer-btn:hover {
+      background: rgba(0, 255, 255, 0.3);
+      transform: translateX(10px);
+    }
+
+    .answer-btn.correct {
+      background: #00ff00;
+      color: #000;
+      border-color: #00ff00;
+    }
+
+    .answer-btn.wrong {
+      background: #ff0000;
+      color: #fff;
+      border-color: #ff0000;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .menu-overlay.active {
+      display: flex;
+    }
+
+    .menu-box {
+      background: rgba(0, 0, 0, 0.9);
+      border: 4px solid #ff00ff;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .menu-title {
+      font-size: 32px;
+      color: #ffff00;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .answered-questions {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 20px 0;
+    }
+
+    .answered-item {
+      padding: 10px;
+      margin: 5px 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      border-left: 4px solid;
+    }
+
+    .answered-item.correct {
+      border-left-color: #00ff00;
+    }
+
+    .answered-item.wrong {
+      border-left-color: #ff0000;
+    }
+
+    .end-screen {
+      background: rgba(0, 0, 0, 0.9);
+      border: 4px solid #00ff00;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .final-score {
+      font-size: 64px;
+      color: #ffff00;
+      margin: 20px 0;
+      text-shadow: 3px 3px 0 #000;
+    }
+
+    .motivation-text {
+      font-size: 24px;
+      color: #00ffff;
+      margin: 20px 0;
+      font-style: italic;
+    }
+
+    .btn-replay {
+      background: #ff00ff;
+      color: #fff;
+      border-color: #ff00ff;
+    }
+
+    .btn-replay:hover {
+      background: #cc00cc;
+      transform: scale(1.1);
+    }
+
+    .duck-container {
+      position: fixed;
+      bottom: -100px;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .duck {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      animation: floatUp 4s ease-in-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-120%) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    .duck-celebrate {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      animation: waddle 2s ease-in-out infinite;
+    }
+
+    @keyframes waddle {
+      0%, 100% {
+        transform: translateX(0) rotate(-5deg);
+      }
+      25% {
+        transform: translateX(10px) rotate(5deg);
+      }
+      50% {
+        transform: translateX(0) rotate(-5deg);
+      }
+      75% {
+        transform: translateX(-10px) rotate(5deg);
+      }
+    }
+
+    .duck-corner {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      opacity: 0.6;
+      z-index: 10;
+      animation: bob 3s ease-in-out infinite;
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    .duck-corner.top-left {
+      top: 10px;
+      left: 10px;
+      animation-delay: 0s;
+    }
+
+    .duck-corner.top-right {
+      top: 10px;
+      right: 10px;
+      animation-delay: 0.5s;
+    }
+
+    .duck-corner.bottom-left {
+      bottom: 10px;
+      left: 10px;
+      animation-delay: 1s;
+    }
+
+    .duck-corner.bottom-right {
+      bottom: 10px;
+      right: 10px;
+      animation-delay: 1.5s;
+    }
+
+    .duck-swim {
+      position: absolute;
+      width: 45px;
+      height: 45px;
+      animation: swim 10s linear infinite;
+    }
+
+    @keyframes swim {
+      0% {
+        left: -100px;
+        transform: scaleX(1);
+      }
+      48% {
+        left: calc(100% + 100px);
+        transform: scaleX(1);
+      }
+      52% {
+        left: calc(100% + 100px);
+        transform: scaleX(-1);
+      }
+      100% {
+        left: -100px;
+        transform: scaleX(-1);
+      }
+    }
+
+    .duck-bounce {
+      position: absolute;
+      width: 55px;
+      height: 55px;
+      animation: bounce 2.5s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { 
+        transform: translateY(0) scale(1);
+      }
+      50% { 
+        transform: translateY(-25px) scale(1.05);
+      }
+    }
+
+    .duck-spin {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      animation: spin 5s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .duck-float {
+      position: absolute;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { 
+        transform: translateY(0) translateX(0);
+      }
+      25% { 
+        transform: translateY(-10px) translateX(5px);
+      }
+      50% { 
+        transform: translateY(0) translateX(10px);
+      }
+      75% { 
+        transform: translateY(-10px) translateX(5px);
+      }
+    }
+
+    .duck-shake {
+      position: absolute;
+      animation: shake 2s ease-in-out infinite;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-8deg); }
+      75% { transform: rotate(8deg); }
+    }
+
+    .duck-pulse {
+      position: absolute;
+      animation: duckPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes duckPulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+
+    .duck-size-tiny {
+      width: 30px;
+      height: 30px;
+    }
+
+    .duck-size-small {
+      width: 40px;
+      height: 40px;
+    }
+
+    .duck-size-medium {
+      width: 50px;
+      height: 50px;
+    }
+
+    .duck-size-large {
+      width: 65px;
+      height: 65px;
+    }
+
+    .duck-header {
+      display: inline-block;
+      width: 45px;
+      height: 45px;
+      animation: wiggle 1.5s ease-in-out infinite;
+      vertical-align: middle;
+      margin: 0 15px;
+      opacity: 0.8;
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(-8deg); }
+      50% { transform: rotate(8deg); }
+    }
+
+    .cheerleader-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1500;
+      pointer-events: none;
+    }
+
+    .cheerleader-overlay.active {
+      display: flex;
+    }
+
+    .cheerleader-duck {
+      width: 200px;
+      height: 200px;
+      animation: cheerJump 0.6s ease-in-out 3;
+      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+    }
+
+    @keyframes cheerJump {
+      0%, 100% { 
+        transform: translateY(0) scale(1) rotate(0deg);
+      }
+      25% {
+        transform: translateY(-40px) scale(1.1) rotate(-5deg);
+      }
+      50% { 
+        transform: translateY(-60px) scale(1.15) rotate(0deg);
+      }
+      75% {
+        transform: translateY(-40px) scale(1.1) rotate(5deg);
+      }
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #ffff00;
+      animation: confettiFall 1.5s ease-out forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(500px) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    .decorative-ducks {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .game-title {
+        font-size: 32px;
+      }
+      
+      .game-board {
+        width: 250px;
+        height: 500px;
+      }
+      
+      .info-panel {
+        width: 100%;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="retro-bg"></div>
+  <div class="container">
+   <h1 class="game-title" id="gameTitle"><span class="duck-header" style="animation-delay: 0s;"></span> TETRIS PERIBAHASA <span class="duck-header" style="animation-delay: 0.5s;"></span></h1><!-- Itik-itik sudut skrin -->
+   <div class="duck-corner top-left"></div>
+   <div class="duck-corner top-right"></div>
+   <div class="duck-corner bottom-left"></div>
+   <div class="duck-corner bottom-right"></div>
+   <div id="startScreen" class="screen active">
+    <div class="start-screen">
+     <div class="decorative-ducks">
+      <div class="duck-swim duck-size-small" style="top: 20%; animation-delay: 0s;"></div>
+      <div class="duck-swim duck-size-small" style="top: 60%; animation-delay: 5s;"></div>
+      <div class="duck-float duck-size-tiny" style="left: 8%; top: 10%;"></div>
+      <div class="duck-float duck-size-tiny" style="right: 8%; top: 15%; animation-delay: 1s;"></div>
+     </div>
+     <div class="welcome-text" id="welcomeMessage">
+      Selamat Datang! Jawab soalan peribahasa sambil bermain Tetris!
+     </div><input type="text" id="playerName" class="name-input" placeholder="Masukkan nama anda" maxlength="20">
+     <div class="leaderboard">
+      <div class="leaderboard-title">
+       🏆 PAPAN PENDAHULU 🏆
+      </div>
+      <div id="startLeaderboard"></div>
+     </div><button class="btn btn-start" onclick="startGame()">MULA MAIN</button>
+    </div>
+   </div>
+   <div id="gameScreen" class="screen">
+    <div class="game-screen">
+     <div class="game-panel">
+      <div style="position: relative;">
+       <div class="game-board" id="gameBoard"></div>
+       <div class="duck-pulse duck-size-small" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%);"></div>
+      </div>
+     </div>
+     <div class="info-panel">
+      <div class="info-box">
+       <div class="info-label">
+        Pemain
+       </div>
+       <div class="info-value" id="currentPlayer">
+        -
+       </div>
+      </div>
+      <div class="info-box">
+       <div class="info-label">
+        Skor
+       </div>
+       <div class="info-value" id="currentScore">
+        0
+       </div>
+      </div>
+      <div class="info-box">
+       <div class="info-label">
+        Masa
+       </div>
+       <div class="info-value timer" id="timer">
+        3:00
+       </div>
+      </div>
+      <div class="info-box">
+       <div class="info-label">
+        Soalan Dijawab
+       </div>
+       <div class="info-value" id="questionsAnswered">
+        0
+       </div>
+      </div>
+      <div class="info-box" style="font-size: 12px; padding: 10px;">
+       <div style="color: #ffff00; margin-bottom: 5px;">
+        KAWALAN:
+       </div>
+       <div style="color: #00ffff;">
+        ← → : Gerak
+       </div>
+       <div style="color: #00ffff;">
+        ↓ : Pecutan
+       </div>
+       <div style="color: #00ffff;">
+        ↑ : Putar
+       </div>
+      </div><button class="btn btn-menu" onclick="toggleMenu()">MENU</button>
+     </div>
+    </div>
+   </div>
+   <div id="endScreen" class="screen">
+    <div class="end-screen">
+     <div style="position: relative;">
+      <div class="duck-float duck-size-small" style="left: 5%; top: 5%;"></div>
+      <div class="duck-float duck-size-small" style="right: 5%; top: 5%; animation-delay: 1.5s;"></div>
+      <div class="duck-pulse duck-size-tiny" style="left: 15%; top: 50px; animation-delay: 0.5s;"></div>
+      <div class="duck-pulse duck-size-tiny" style="right: 15%; top: 50px; animation-delay: 1s;"></div>
+      <h2 style="font-size: 36px; color: #00ff00;">TAMAT PERMAINAN!</h2>
+      <div class="final-score" id="finalScore">
+       0
+      </div>
+      <div class="motivation-text" id="motivationText"></div>
+      <div id="celebrateDucks" style="position: relative; height: 120px; margin: 20px 0;"></div>
+     </div>
+     <div class="leaderboard">
+      <div class="leaderboard-title">
+       🏆 PAPAN PENDAHULU 🏆
+      </div>
+      <div id="endLeaderboard"></div>
+     </div><button class="btn btn-replay" onclick="replayGame()">MAIN LAGI</button>
+    </div>
+   </div>
+  </div>
+  <div id="questionOverlay" class="question-overlay">
+   <div class="question-box">
+    <div style="position: relative;">
+     <div class="duck-shake duck-size-medium" style="left: -45px; top: 10px;"></div>
+     <div class="duck-shake duck-size-medium" style="right: -45px; top: 10px; animation-delay: 0.5s;"></div>
+     <div class="question-text" id="questionText"></div>
+     <div id="answersContainer"></div>
+    </div>
+   </div>
+  </div>
+  <div id="menuOverlay" class="menu-overlay">
+   <div class="menu-box">
+    <div class="menu-title">
+     MENU
+    </div>
+    <div class="answered-questions">
+     <h3 style="color: #ffff00; text-align: center;">Soalan Yang Telah Dijawab</h3>
+     <div id="answeredList"></div>
+    </div><button class="btn btn-start" onclick="toggleMenu()">TERUSKAN</button> <button class="btn btn-replay" onclick="exitGame()">KELUAR</button>
+   </div>
+  </div>
+  <div id="duckContainer" class="duck-container"></div>
+  <div id="cheerleaderOverlay" class="cheerleader-overlay">
+   <div class="cheerleader-duck" id="cheerleaderDuck"></div>
+  </div>
+  <script>
+    const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800'];
+    const ROWS = 20;
+    const COLS = 10;
+    const GAME_DURATION = 180;
+
+    const PERIBAHASA_QUESTIONS = [
+      { q: "Bagai aur dengan _____", answers: ["tebing", "air", "sungai", "batu"], correct: 0 },
+      { q: "Berat sama dipikul, ringan sama _____", answers: ["dijinjing", "dibawa", "diangkat", "dipegang"], correct: 0 },
+      { q: "Seperti kacang lupakan _____", answers: ["kulitnya", "tanahnya", "airnya", "pohonnya"], correct: 0 },
+      { q: "Air dicencang tidak akan _____", answers: ["putus", "habis", "hilang", "kering"], correct: 0 },
+      { q: "Bagai _____ dengan bunga", answers: ["kumbang", "rama-rama", "lebah", "lalat"], correct: 0 },
+      { q: "Sebab nila setitik, rosak _____ sebelanga", answers: ["susu", "air", "kuah", "kopi"], correct: 0 },
+      { q: "Hangat-hangat tahi _____", answers: ["ayam", "itik", "kambing", "lembu"], correct: 0 },
+      { q: "Tong kosong nyaring _____", answers: ["bunyinya", "suaranya", "ketukannya", "dentumnya"], correct: 0 },
+      { q: "Seperti anjing dengan _____", answers: ["kucing", "tikus", "ayam", "kambing"], correct: 0 },
+      { q: "Bagai pungguk merindukan _____", answers: ["bulan", "bintang", "matahari", "awan"], correct: 0 },
+      { q: "Masuk bakul angkat _____", answers: ["sendiri", "bersama", "ramai-ramai", "bergilir"], correct: 0 },
+      { q: "Biar lambat asal _____", answers: ["selamat", "sampai", "betul", "tepat"], correct: 0 },
+      { q: "Lempar _____ sembunyi tangan", answers: ["batu", "kayu", "bola", "pasir"], correct: 0 },
+      { q: "Bagai telur di hujung _____", answers: ["tanduk", "dahan", "pagar", "jalan"], correct: 0 },
+      { q: "Berakit-rakit ke hulu, berenang-renang ke _____", answers: ["tepian", "pantai", "pulau", "laut"], correct: 0 }
     ];
 
-    // DOM refs
-    const timeDisplay = document.getElementById('time-display');
-    const scoreDisplay = document.getElementById('score-display');
-    const highscoreDisplay = document.getElementById('highscore-display');
-    const welcomeModal = document.getElementById('welcome-modal');
-    const quizModal = document.getElementById('quiz-modal');
-    const pauseModal = document.getElementById('pause-modal');
-    const gameoverModal = document.getElementById('gameover-modal');
-    const loadingModal = document.getElementById('loading-modal');
-    const gameContainer = document.getElementById('game-container');
+    const MOTIVATION_MESSAGES = [
+      "Hebat! Anda seorang pakar peribahasa! 🌟",
+      "Wow! Otak anda memang tajam! 🧠",
+      "Terbaik! Teruskan usaha cemerlang! 💪",
+      "Fantastik! Guru pun kalah dengan anda! ���",
+      "Luar biasa! Anda memang juara! 🏆",
+      "Syabas! Skor yang mengagumkan! ⭐",
+      "Mantap! Jangan berhenti di sini! 🚀",
+      "Cemerlang! Anda semakin hebat! ✨"
+    ];
 
-    const SHAPES = [ [[1,1,1,1]], [[1,1],[1,1]], [[0,1,0],[1,1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]], [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]] ];
-    const COLORS = ['#f92a82','#4af626','#37e0ff','#f8f32b','#ff9f1a','#a042ff','#ffffff'];
+    let gameState = {
+      board: [],
+      currentPiece: null,
+      currentX: 0,
+      currentY: 0,
+      score: 0,
+      timeLeft: GAME_DURATION,
+      playerName: '',
+      usedQuestions: new Set(),
+      answeredQuestions: [],
+      isPaused: false,
+      gameInterval: null,
+      timerInterval: null
+    };
 
-    function createBoard(){ return Array.from({length:ROWS},()=>Array(COLS).fill(0)); }
-    function newPiece(){ const r=Math.floor(Math.random()*SHAPES.length); return { shape: SHAPES[r], color: COLORS[r], x: Math.floor(COLS/2)-Math.floor(SHAPES[r][0].length/2), y:0 }; }
+    const defaultConfig = {
+      game_title: "TETRIS PERIBAHASA",
+      welcome_message: "Selamat Datang! Jawab soalan peribahasa sambil bermain Tetris!",
+      background_color: "#667eea",
+      surface_color: "#000000",
+      text_color: "#ffffff",
+      primary_action_color: "#00ff00",
+      secondary_action_color: "#ffff00"
+    };
 
-    function draw(){ if(isPaused||isGameOver) return; ctx.fillStyle='#111'; ctx.fillRect(0,0,canvas.width,canvas.height); board.forEach((row,y)=>row.forEach((v,x)=>{ if(v){ ctx.fillStyle=COLORS[v-1]; ctx.fillRect(x,y,1,1); ctx.strokeStyle='#111'; ctx.lineWidth=0.1; ctx.strokeRect(x,y,1,1); } })); if(activePiece){ ctx.fillStyle=activePiece.color; activePiece.shape.forEach((row,y)=>row.forEach((v,x)=>{ if(v){ ctx.fillRect(activePiece.x+x,activePiece.y+y,1,1); ctx.strokeStyle='#111'; ctx.lineWidth=0.1; ctx.strokeRect(activePiece.x+x,activePiece.y+y,1,1); } })); } }
+    const dataHandler = {
+      onDataChanged(data) {
+        renderLeaderboard(data);
+      }
+    };
 
-    function moveDown(){ if(isPaused||isGameOver||isQuizActive) return; if(checkCollision(activePiece.x,activePiece.y+1,activePiece.shape)){ lockPiece(); checkLines(); activePiece=newPiece(); if(checkCollision(activePiece.x,activePiece.y,activePiece.shape)){ endGame(); } } else { activePiece.y++; } draw(); }
-    function moveHorizontal(dir){ if(isPaused||isGameOver||isQuizActive) return; if(!checkCollision(activePiece.x+dir,activePiece.y,activePiece.shape)) activePiece.x+=dir; draw(); }
-    function rotatePiece(){ if(isPaused||isGameOver||isQuizActive) return; const N=activePiece.shape[0].length; const M=activePiece.shape.length; const newShape=Array.from({length:N},()=>Array(M).fill(0)); for(let r=0;r<M;r++) for(let c=0;c<N;c++) newShape[c][M-1-r]=activePiece.shape[r][c]; if(!checkCollision(activePiece.x,activePiece.y,newShape)) activePiece.shape=newShape; else if(!checkCollision(activePiece.x+1,activePiece.y,newShape)){ activePiece.x++; activePiece.shape=newShape; } else if(!checkCollision(activePiece.x-1,activePiece.y,newShape)){ activePiece.x--; activePiece.shape=newShape; } draw(); }
+    async function init() {
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        console.error("Failed to initialize data SDK");
+      }
+    }
 
-    function checkCollision(x,y,shape){ for(let r=0;r<shape.length;r++){ for(let c=0;c<shape[r].length;c++){ if(shape[r][c]){ const nx=x+c, ny=y+r; if(nx<0||nx>=COLS||ny>=ROWS) return true; if(ny>=0 && board[ny][nx]) return true; } } } return false; }
-    function lockPiece(){ activePiece.shape.forEach((row,y)=>row.forEach((v,x)=>{ if(v){ const bx=activePiece.x+x, by=activePiece.y+y; if(by>=0) board[by][bx]=COLORS.indexOf(activePiece.color)+1; } })); }
-    function checkLines(){ let linesCleared=0; for(let y=ROWS-1;y>=0;y--){ if(board[y].every(cell=>cell>0)){ linesCleared++; board.splice(y,1); board.unshift(Array(COLS).fill(0)); y++; } } if(linesCleared>0){ score += linesCleared * 100 * linesCleared; updateScoreUI(); pauseGame(true); showQuizModal(); } }
+    function createDuckSVG() {
+      return `
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <!-- Duck body -->
+          <ellipse cx="50" cy="60" rx="25" ry="20" fill="#ffffff" stroke="#333" stroke-width="2"/>
+          <!-- Duck head -->
+          <circle cx="45" cy="40" r="15" fill="#ffffff" stroke="#333" stroke-width="2"/>
+          <!-- Duck beak -->
+          <ellipse cx="55" cy="42" rx="8" ry="5" fill="#ffa500" stroke="#333" stroke-width="1.5"/>
+          <!-- Duck eye -->
+          <circle cx="42" cy="38" r="3" fill="#000000"/>
+          <!-- Duck wing -->
+          <path d="M 55 55 Q 70 60 65 70" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+          <!-- Duck tail -->
+          <path d="M 30 65 Q 20 70 25 75" fill="#ffffff" stroke="#333" stroke-width="2"/>
+        </svg>
+      `;
+    }
 
-    function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
-    function showQuizModal(){ isQuizActive=true; if(currentQuestionIndex>=shuffledQuestions.length){ currentQuestionIndex=0; shuffleArray(shuffledQuestions); } const q=shuffledQuestions[currentQuestionIndex]; document.getElementById('question-text').textContent=q.q; const opts=document.getElementById('answer-options'); opts.innerHTML=''; q.o.forEach((opt,i)=>{ const b=document.createElement('button'); b.textContent=opt; b.className='btn-retro'; b.style.display='block'; b.style.width='100%'; b.dataset.index=i; b.onclick=()=>checkAnswer(i,q.a,b); opts.appendChild(b); }); quizModal.classList.remove('hidden'); currentQuestionIndex++; }
+    function createCheerleaderDuckSVG() {
+      return `
+        <svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+          <!-- Left Pompom -->
+          <g id="leftPompom">
+            <circle cx="20" cy="40" r="8" fill="#ff1493" opacity="0.9"/>
+            <circle cx="15" cy="35" r="5" fill="#ff69b4" opacity="0.8"/>
+            <circle cx="25" cy="35" r="5" fill="#ff69b4" opacity="0.8"/>
+            <circle cx="15" cy="45" r="5" fill="#ff69b4" opacity="0.8"/>
+            <circle cx="25" cy="45" r="5" fill="#ff69b4" opacity="0.8"/>
+            <line x1="20" y1="48" x2="35" y2="60" stroke="#8b4513" stroke-width="2"/>
+          </g>
+          
+          <!-- Right Pompom -->
+          <g id="rightPompom">
+            <circle cx="130" cy="40" r="8" fill="#ff1493" opacity="0.9"/>
+            <circle cx="125" cy="35" r="5" fill="#ff69b4" opacity="0.8"/>
+            <circle cx="135" cy="35" r="5" fill="#ff69b4" opacity="0.8"/>
+            <circle cx="125" cy="45" r="5" fill="#ff69b4" opacity="0.8"/>
+            <circle cx="135" cy="45" r="5" fill="#ff69b4" opacity="0.8"/>
+            <line x1="130" y1="48" x2="115" y2="60" stroke="#8b4513" stroke-width="2"/>
+          </g>
+          
+          <!-- Duck body -->
+          <ellipse cx="75" cy="85" rx="30" ry="25" fill="#ffffff" stroke="#333" stroke-width="2.5"/>
+          
+          <!-- Duck head -->
+          <circle cx="70" cy="60" r="18" fill="#ffffff" stroke="#333" stroke-width="2.5"/>
+          
+          <!-- Happy eye (closed in joy) -->
+          <path d="M 62 58 Q 65 62 68 58" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+          
+          <!-- Duck beak (open in cheer) -->
+          <path d="M 82 60 Q 90 58 92 62 Q 90 66 82 64 Z" fill="#ffa500" stroke="#333" stroke-width="2"/>
+          <line x1="82" y1="62" x2="88" y2="62" stroke="#333" stroke-width="1.5"/>
+          
+          <!-- Wings (raised up in celebration) -->
+          <path d="M 50 75 Q 35 65 40 60" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 100 75 Q 115 65 110 60" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
+          
+          <!-- Duck tail -->
+          <path d="M 50 95 Q 40 100 45 105" fill="#ffffff" stroke="#333" stroke-width="2.5"/>
+          
+          <!-- Feet -->
+          <ellipse cx="65" cy="112" rx="8" ry="4" fill="#ffa500" stroke="#333" stroke-width="1.5"/>
+          <ellipse cx="85" cy="112" rx="8" ry="4" fill="#ffa500" stroke="#333" stroke-width="1.5"/>
+          
+          <!-- Sparkles around duck -->
+          <circle cx="30" cy="50" r="2" fill="#ffff00" opacity="0.8">
+            <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="120" cy="50" r="2" fill="#ffff00" opacity="0.8">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="40" cy="30" r="2.5" fill="#ffff00" opacity="0.8">
+            <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="110" cy="30" r="2.5" fill="#ffff00" opacity="0.8">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      `;
+    }
 
-    function checkAnswer(selectedIndex, correctIndex, button){ const buttons=document.querySelectorAll('#answer-options .btn-retro'); buttons.forEach(b=>b.disabled=true); const qText=shuffledQuestions[currentQuestionIndex-1].q; const aText=shuffledQuestions[currentQuestionIndex-1].o[selectedIndex]; if(selectedIndex===correctIndex){ button.style.background='#22c55e'; score+=50; updateScoreUI(); answeredQuestions.push({q:qText,a:aText,isCorrect:true}); } else { button.style.background='#ef4444'; buttons.forEach(b=>{ if(parseInt(b.dataset.index)===correctIndex) b.style.background='#22c55e'; }); answeredQuestions.push({q:qText,a:aText,isCorrect:false}); } setTimeout(()=>{ quizModal.classList.add('hidden'); isQuizActive=false; resumeGame(); },1200); }
+    function spawnDuck() {
+      const container = document.getElementById('duckContainer');
+      const duck = document.createElement('div');
+      duck.className = 'duck';
+      duck.innerHTML = createDuckSVG();
+      duck.style.left = Math.random() * 90 + '%';
+      duck.style.bottom = '-100px';
+      
+      container.appendChild(duck);
+      
+      setTimeout(() => {
+        duck.remove();
+      }, 4000);
+    }
 
-    function startGame(){ board=createBoard(); activePiece=newPiece(); score=0; timeLeft=180; isGameOver=false; isPaused=false; isQuizActive=false; currentQuestionIndex=0; answeredQuestions=[]; shuffledQuestions=[...questions]; shuffleArray(shuffledQuestions); if(gameTimer) clearInterval(gameTimer); gameTimer=setInterval(moveDown,1000); if(countdownTimer) clearInterval(countdownTimer); countdownTimer=setInterval(updateTimer,1000); updateScoreUI(); updateTimerDisplay(); fetchHighScore(); welcomeModal.classList.add('hidden'); gameoverModal.classList.add('hidden'); gameContainer.style.display='block'; }
-    function updateTimer(){ if(isPaused||isGameOver||isQuizActive) return; timeLeft--; updateTimerDisplay(); if(timeLeft<=0) endGame(); }
-    function pauseGame(forQuiz=false){ if(isGameOver) return; isPaused=true; clearInterval(gameTimer); clearInterval(countdownTimer); if(!forQuiz){ updateAnsweredQuestionsList(); pauseModal.classList.remove('hidden'); } }
-    function resumeGame(){ if(isGameOver) return; isPaused=false; pauseModal.classList.add('hidden'); if(gameTimer) clearInterval(gameTimer); gameTimer=setInterval(moveDown,1000); if(countdownTimer) clearInterval(countdownTimer); countdownTimer=setInterval(updateTimer,1000); }
-    function endGame(){ isGameOver=true; clearInterval(gameTimer); clearInterval(countdownTimer); document.getElementById('final-score').textContent=score; const msgs=["Hebat! Tapi jangan lupa kerja sekolah.","Wow! Anda mungkin pro Tetris, tapi adakah anda pro peribahasa?","Skor anda lebih tinggi dari cita-cita saya. Sikitlah.","Anda telah membuktikan bahawa main game sambil belajar itu boleh!","Masa dah tamat! Pergi minum air."]; document.getElementById('funny-message').textContent=msgs[Math.floor(Math.random()*msgs.length)]; saveScoreToStorage(); fetchLeaderboard(document.getElementById('leaderboard-gameover')); gameoverModal.classList.remove('hidden'); }
+    function showCheerleaderDuck() {
+      const overlay = document.getElementById('cheerleaderOverlay');
+      const duckEl = document.getElementById('cheerleaderDuck');
+      
+      duckEl.innerHTML = createCheerleaderDuckSVG();
+      overlay.classList.add('active');
+      
+      // Spawn confetti
+      for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          const colors = ['#ff1493', '#ffff00', '#00ff00', '#00ffff', '#ff00ff'];
+          confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.left = (Math.random() * 100) + '%';
+          confetti.style.top = '20%';
+          confetti.style.animationDelay = (Math.random() * 0.3) + 's';
+          overlay.appendChild(confetti);
+          
+          setTimeout(() => confetti.remove(), 1500);
+        }, i * 30);
+      }
+      
+      setTimeout(() => {
+        overlay.classList.remove('active');
+      }, 2000);
+    }
 
-    function updateScoreUI(){ scoreDisplay.textContent=score; if(score>highScore){ highScore=score; highscoreDisplay.textContent=highScore; } }
-    function updateTimerDisplay(){ const m=Math.floor(timeLeft/60); const s=timeLeft%60; timeDisplay.textContent=`${m}:${s<10?'0':''}${s}`; }
+    function createCelebrationDucks() {
+      const container = document.getElementById('celebrateDucks');
+      container.innerHTML = '';
+      
+      for (let i = 0; i < 3; i++) {
+        const duck = document.createElement('div');
+        duck.className = 'duck-celebrate';
+        duck.innerHTML = createDuckSVG();
+        duck.style.left = (20 + i * 30) + '%';
+        duck.style.bottom = '10px';
+        duck.style.animationDelay = (i * 0.2) + 's';
+        container.appendChild(duck);
+      }
+    }
 
-    // Ensure fetchHighScore exists — previously missing which caused startGame() to throw a ReferenceError
-    // This will attempt to update the displayed high score and (if possible) fetch the latest leaderboard
-    async function fetchHighScore(){
-      try{
-        // Prefer the backend sources to update the high score
-        if (useSheets) {
-          // fetch top from sheets and set highScore
-          const res = await fetch(`${SHEETS_WEBAPP_URL}?action=list`);
-          const json = await res.json();
-          if (json && Array.isArray(json.items) && json.items.length>0){
-            highScore = Number(json.items.slice().sort((a,b)=>b.score-a.score)[0].score) || highScore;
-            highscoreDisplay.textContent = highScore;
-            return;
+    function renderLeaderboard(data) {
+      const sortedData = [...data].sort((a, b) => b.score - a.score).slice(0, 10);
+      
+      const startHtml = sortedData.map((entry, index) => `
+        <div class="leaderboard-item ${index < 3 ? 'top3' : ''}">
+          <span>${index + 1}. ${entry.player_name}</span>
+          <span>${entry.score} mata</span>
+        </div>
+      `).join('');
+      
+      document.getElementById('startLeaderboard').innerHTML = startHtml || '<div style="text-align: center; color: #888;">Belum ada skor</div>';
+      document.getElementById('endLeaderboard').innerHTML = startHtml || '<div style="text-align: center; color: #888;">Belum ada skor</div>';
+    }
+
+    function initBoard() {
+      gameState.board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+      const boardEl = document.getElementById('gameBoard');
+      boardEl.innerHTML = '';
+      
+      for (let i = 0; i < ROWS * COLS; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        boardEl.appendChild(cell);
+      }
+    }
+
+    function createPiece() {
+      const shapes = [
+        [[1,1,1,1]],
+        [[1,1],[1,1]],
+        [[1,1,1],[0,1,0]],
+        [[1,1,1],[1,0,0]],
+        [[1,1,1],[0,0,1]],
+        [[1,1,0],[0,1,1]],
+        [[0,1,1],[1,1,0]]
+      ];
+      
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      
+      return { shape, color };
+    }
+
+    function drawBoard() {
+      const cells = document.querySelectorAll('.cell');
+      
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const index = row * COLS + col;
+          const cell = cells[index];
+          
+          if (gameState.board[row][col]) {
+            cell.style.backgroundColor = gameState.board[row][col];
+            cell.classList.add('filled');
+          } else {
+            cell.style.backgroundColor = 'transparent';
+            cell.classList.remove('filled');
           }
-        } else if (useFirestore && db) {
-          // try to get top score from Firestore collection (best-effort)
-          try{
-            const colRef = getLeaderboardCollectionRef();
-            const qref = query(colRef);
-            const snap = await getDocs(qref);
-            const arr = [];
-            snap.forEach(d=>arr.push(d.data()));
-            if(arr.length>0){ arr.sort((a,b)=>b.score-a.score); highScore = arr[0].score || highScore; highscoreDisplay.textContent = highScore; return; }
-          }catch(e){ /* ignore */ }
         }
+      }
+      
+      if (gameState.currentPiece) {
+        const { shape, color } = gameState.currentPiece;
+        for (let row = 0; row < shape.length; row++) {
+          for (let col = 0; col < shape[row].length; col++) {
+            if (shape[row][col]) {
+              const boardRow = gameState.currentY + row;
+              const boardCol = gameState.currentX + col;
+              if (boardRow >= 0 && boardRow < ROWS && boardCol >= 0 && boardCol < COLS) {
+                const index = boardRow * COLS + boardCol;
+                cells[index].style.backgroundColor = color;
+              }
+            }
+          }
+        }
+      }
+    }
 
-        // fallback: just update from local variable or localStorage
-        const local = readLocalLeaderboard();
-        if (local && local.length>0){ local.sort((a,b)=>b.score-a.score); highScore = local[0].score || highScore; }
-        highscoreDisplay.textContent = highScore;
-      }catch(e){ console.warn('fetchHighScore failed', e); highscoreDisplay.textContent = highScore; }
-    }:${s<10?'0':''}${s}`; }
-    function updateAnsweredQuestionsList(){ const list=document.getElementById('answered-questions-list'); if(answeredQuestions.length===0){ list.innerHTML='<p>Tiada soalan dijawab lagi.</p>'; return; } list.innerHTML=''; answeredQuestions.forEach(item=>{ const div=document.createElement('div'); div.style.padding='6px'; div.style.borderBottom='1px solid #2d2d2d'; const qText=item.q.length>50?item.q.substring(0,50)+'...':item.q; const color=item.isCorrect?'#22c55e':'#ef4444'; div.innerHTML=`<div style="font-weight:bold;color:${color}">${item.isCorrect?'BETUL':'SALAH'}</div><div style="font-size:12px">${qText}</div><div style="font-style:italic;font-size:12px">Jawapan anda: ${item.a}</div>`; list.appendChild(div); }); }
+    function canMove(piece, x, y) {
+      for (let row = 0; row < piece.shape.length; row++) {
+        for (let col = 0; col < piece.shape[row].length; col++) {
+          if (piece.shape[row][col]) {
+            const newX = x + col;
+            const newY = y + row;
+            
+            if (newX < 0 || newX >= COLS || newY >= ROWS) return false;
+            if (newY >= 0 && gameState.board[newY][newX]) return false;
+          }
+        }
+      }
+      return true;
+    }
 
-    // --- Leaderboard implementations (Sheets / Firestore / localStorage) ---
-    async function initAuthAndLeaderboard(){
-      if(useSheets){ loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); fetchLeaderboardSheets(document.getElementById('leaderboard-welcome')); return; }
-      if(useFirestore){ try{ if(!auth) auth = getAuth(); onAuthStateChanged(auth,(user)=>{ if(user){ userId=user.uid; isAuthReady=true; fetchLeaderboardFirestore(document.getElementById('leaderboard-welcome')); loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); } }); if(initialAuthToken) await signInWithCustomToken(auth, initialAuthToken); else await signInAnonymously(auth); }catch(e){ console.error('Auth failed, falling back to localStorage:',e); useFirestore=false; loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); fetchLeaderboardLocal(document.getElementById('leaderboard-welcome')); } } else { loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); fetchLeaderboardLocal(document.getElementById('leaderboard-welcome')); } }
+    function rotatePiece(piece) {
+      const rotated = [];
+      const rows = piece.shape.length;
+      const cols = piece.shape[0].length;
+      
+      for (let col = 0; col < cols; col++) {
+        rotated[col] = [];
+        for (let row = rows - 1; row >= 0; row--) {
+          rotated[col].push(piece.shape[row][col]);
+        }
+      }
+      
+      return { shape: rotated, color: piece.color };
+    }
 
-    // Firestore functions
-    async function fetchLeaderboardFirestore(container){ if(!useFirestore) throw new Error('Firestore disabled'); container.innerHTML='<p>Memuatkan data...</p>'; try{ const colRef = getLeaderboardCollectionRef(); const qref = query(colRef); const snap = await getDocs(qref); let arr=[]; snap.forEach(d=>arr.push(d.data())); arr.sort((a,b)=>b.score - a.score); arr = arr.slice(0,10); if(arr.length===0){ container.innerHTML='<p>Tiada data lagi. Jadilah yang pertama!</p>'; return; } highScore = arr[0].score||0; highscoreDisplay.textContent=highScore; container.innerHTML=''; arr.forEach((it,idx)=>{ const e=document.createElement('div'); e.style.display='flex'; e.style.justifyContent='space-between'; e.style.padding='4px 0'; e.innerHTML=`<div style="color:${idx===0?'#f59e0b':idx===1?'#c7c7c7':idx===2?'#fbbf24':'#fff'}">${idx+1}. ${it.name}</div><div style="color:#06b6d4">${it.score}</div>`; container.appendChild(e); }); }catch(e){ console.error('Fetch Firestore failed',e); container.innerHTML='<p>Gagal memuatkan leaderboard.</p>'; } }
-    async function saveScoreFirestore(){ if(!useFirestore) throw new Error('Firestore disabled'); const colRef = getLeaderboardCollectionRef(); await addDoc(colRef,{ name: playerName, score: score, createdAt: serverTimestamp(), userId: userId }); }
+    function mergePiece() {
+      const { shape, color } = gameState.currentPiece;
+      for (let row = 0; row < shape.length; row++) {
+        for (let col = 0; col < shape[row].length; col++) {
+          if (shape[row][col]) {
+            const boardRow = gameState.currentY + row;
+            const boardCol = gameState.currentX + col;
+            if (boardRow >= 0) {
+              gameState.board[boardRow][boardCol] = color;
+            }
+          }
+        }
+      }
+      
+      checkLines();
+    }
 
-    // Sheets functions
-    async function fetchLeaderboardSheets(container){ container.innerHTML='<p>Memuatkan data...</p>'; if(!SHEETS_WEBAPP_URL){ container.innerHTML='<p>Sheets endpoint tidak disediakan.</p>'; return; } try{ const res = await fetch(`${SHEETS_WEBAPP_URL}?action=list`); const json = await res.json(); if(!json.ok){ container.innerHTML='<p>Gagal memuatkan leaderboard dari Sheets.</p>'; return; } const items = (json.items || []).slice().sort((a,b)=>b.score - a.score).slice(0,10); if(items.length===0){ container.innerHTML='<p>Tiada data lagi. Jadilah yang pertama!</p>'; return; } highScore = items[0].score || 0; highscoreDisplay.textContent = highScore; container.innerHTML=''; items.forEach((it,idx)=>{ const e=document.createElement('div'); e.style.display='flex'; e.style.justifyContent='space-between'; e.style.padding='4px 0'; e.innerHTML=`<div style="color:${idx===0?'#f59e0b':idx===1?'#c7c7c7':idx===2?'#fbbf24':'#fff'}">${idx+1}. ${it.name}</div><div style="color:#06b6d4">${it.score}</div>`; container.appendChild(e); }); }catch(e){ console.error('Fetch sheets failed',e); container.innerHTML='<p>Gagal memuatkan leaderboard.</p>'; } }
-    async function saveScoreSheets(){ if(!SHEETS_WEBAPP_URL || !playerName) return; try{ await fetch(SHEETS_WEBAPP_URL,{ method:'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action:'save', name: playerName, score: score }) }); console.log('Saved to Sheets'); }catch(e){ console.error('Save to Sheets failed', e); } }
+    function checkLines() {
+      let linesCleared = 0;
+      
+      for (let row = ROWS - 1; row >= 0; row--) {
+        if (gameState.board[row].every(cell => cell !== 0)) {
+          gameState.board.splice(row, 1);
+          gameState.board.unshift(Array(COLS).fill(0));
+          linesCleared++;
+          row++;
+        }
+      }
+      
+      if (linesCleared > 0) {
+        spawnDuck();
+        pauseGame();
+        showQuestion();
+      }
+    }
 
-    // LocalStorage functions
-    function readLocalLeaderboard(){ try{ const raw = localStorage.getItem(LS_KEY); if(!raw) return []; return JSON.parse(raw); }catch(e){ localStorage.removeItem(LS_KEY); return []; } }
-    function writeLocalLeaderboard(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-    async function fetchLeaderboardLocal(container){ container.innerHTML='<p>Memuatkan data...</p>'; try{ const arr = readLocalLeaderboard().slice().sort((a,b)=>b.score - a.score).slice(0,10); if(arr.length===0){ container.innerHTML='<p>Tiada data lagi. Jadilah yang pertama!</p>'; return; } highScore = arr[0].score||0; highscoreDisplay.textContent = highScore; container.innerHTML=''; arr.forEach((it,idx)=>{ const e=document.createElement('div'); e.style.display='flex'; e.style.justifyContent='space-between'; e.style.padding='4px 0'; e.innerHTML=`<div style="color:${idx===0?'#f59e0b':idx===1?'#c7c7c7':idx===2?'#fbbf24':'#fff'}">${idx+1}. ${it.name}</div><div style="color:#06b6d4">${it.score}</div>`; container.appendChild(e); }); }catch(e){ container.innerHTML='<p>Gagal memuatkan leaderboard.</p>'; } }
-    async function saveScoreLocal(){ try{ if(!playerName) return; const arr = readLocalLeaderboard(); arr.push({ name: playerName, score: score, createdAt: new Date().toISOString() }); writeLocalLeaderboard(arr); console.log('Saved to localStorage'); }catch(e){ console.error('Failed local save', e); } }
+    function showQuestion() {
+      const availableQuestions = PERIBAHASA_QUESTIONS.filter((_, index) => 
+        !gameState.usedQuestions.has(index)
+      );
+      
+      if (availableQuestions.length === 0) {
+        gameState.usedQuestions.clear();
+      }
+      
+      const questionIndex = PERIBAHASA_QUESTIONS.findIndex(q => 
+        !gameState.usedQuestions.has(PERIBAHASA_QUESTIONS.indexOf(q)) &&
+        availableQuestions.includes(q)
+      );
+      
+      const question = PERIBAHASA_QUESTIONS[questionIndex];
+      gameState.usedQuestions.add(questionIndex);
+      
+      document.getElementById('questionText').textContent = question.q;
+      
+      // Randomize answers
+      const answersWithIndex = question.answers.map((answer, index) => ({
+        text: answer,
+        isCorrect: index === question.correct
+      }));
+      
+      // Shuffle the answers
+      for (let i = answersWithIndex.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [answersWithIndex[i], answersWithIndex[j]] = [answersWithIndex[j], answersWithIndex[i]];
+      }
+      
+      const answersContainer = document.getElementById('answersContainer');
+      answersContainer.innerHTML = '';
+      
+      answersWithIndex.forEach((answer) => {
+        const btn = document.createElement('button');
+        btn.className = 'answer-btn';
+        btn.textContent = answer.text;
+        btn.onclick = () => checkAnswer(answer.isCorrect, question.q, answer.text);
+        answersContainer.appendChild(btn);
+      });
+      
+      document.getElementById('questionOverlay').classList.add('active');
+    }
 
-    // wrapper
-    async function fetchLeaderboard(container){ if(useSheets) return fetchLeaderboardSheets(container); if(useFirestore) return fetchLeaderboardFirestore(container); return fetchLeaderboardLocal(container); }
-    async function saveScoreToStorage(){ if(useSheets){ try{ await saveScoreSheets(); }catch(e){ console.error('Sheets save failed, fallback local',e); await saveScoreLocal(); } return; } if(useFirestore){ try{ await saveScoreFirestore(); }catch(e){ console.error('Firestore save failed, fallback local',e); await saveScoreLocal(); } return; } await saveScoreLocal(); }
+    function checkAnswer(isCorrect, questionText, selectedAnswer) {
+      const buttons = document.querySelectorAll('.answer-btn');
+      buttons.forEach((btn) => {
+        btn.disabled = true;
+        if (btn.textContent === selectedAnswer) {
+          if (isCorrect) {
+            btn.classList.add('correct');
+          } else {
+            btn.classList.add('wrong');
+          }
+        }
+      });
+      
+      if (isCorrect) {
+        gameState.score += 10;
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => spawnDuck(), i * 300);
+        }
+        
+        // Show cheerleader duck animation
+        setTimeout(() => showCheerleaderDuck(), 500);
+      }
+      
+      gameState.answeredQuestions.push({
+        question: questionText,
+        answer: selectedAnswer,
+        correct: isCorrect
+      });
+      
+      updateScore();
+      
+      setTimeout(() => {
+        document.getElementById('questionOverlay').classList.remove('active');
+        resumeGame();
+      }, 1500);
+    }
 
-    // event listeners
-    document.getElementById('start-button').onclick = ()=>{ playerName = document.getElementById('name-input').value.trim(); const nameError = document.getElementById('name-error'); if(!playerName){ nameError.style.display='block'; return; } nameError.style.display='none'; startGame(); };
-    document.getElementById('play-again-button').onclick = ()=> startGame();
-    document.getElementById('pause-button').onclick = ()=> pauseGame(false);
-    document.getElementById('resume-button').onclick = ()=> resumeGame();
-    document.getElementById('exit-button').onclick = ()=>{ isGameOver=true; clearInterval(gameTimer); clearInterval(countdownTimer); gameContainer.style.display='none'; pauseModal.classList.add('hidden'); fetchLeaderboard(document.getElementById('leaderboard-welcome')); welcomeModal.classList.remove('hidden'); };
-    document.addEventListener('keydown',(e)=>{ if(isPaused||isGameOver||isQuizActive) return; if(e.key==='ArrowLeft') moveHorizontal(-1); else if(e.key==='ArrowRight') moveHorizontal(1); else if(e.key==='ArrowDown'){ moveDown(); score+=1; updateScoreUI(); } else if(e.key==='ArrowUp') rotatePiece(); });
-    document.getElementById('move-left-btn').onclick = ()=> moveHorizontal(-1);
-    document.getElementById('move-right-btn').onclick = ()=> moveHorizontal(1);
-    document.getElementById('rotate-btn').onclick = ()=> rotatePiece();
-    document.getElementById('move-down-btn').onclick = ()=> moveDown();
+    function updateScore() {
+      document.getElementById('currentScore').textContent = gameState.score;
+      document.getElementById('questionsAnswered').textContent = gameState.answeredQuestions.length;
+    }
 
-    // initial load
-    window.onload = ()=>{ initAuthAndLeaderboard(); };
+    function updateTimer() {
+      const minutes = Math.floor(gameState.timeLeft / 60);
+      const seconds = gameState.timeLeft % 60;
+      document.getElementById('timer').textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      if (gameState.timeLeft <= 0) {
+        endGame();
+      }
+      gameState.timeLeft--;
+    }
 
+    function pauseGame() {
+      gameState.isPaused = true;
+      if (gameState.gameInterval) {
+        clearInterval(gameState.gameInterval);
+      }
+      if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+      }
+    }
+
+    function resumeGame() {
+      gameState.isPaused = false;
+      gameState.gameInterval = setInterval(gameLoop, 500);
+      gameState.timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function gameLoop() {
+      if (gameState.isPaused) return;
+      
+      if (!gameState.currentPiece) {
+        gameState.currentPiece = createPiece();
+        gameState.currentX = Math.floor(COLS / 2) - 1;
+        gameState.currentY = 0;
+        
+        if (!canMove(gameState.currentPiece, gameState.currentX, gameState.currentY)) {
+          endGame();
+          return;
+        }
+      }
+      
+      if (canMove(gameState.currentPiece, gameState.currentX, gameState.currentY + 1)) {
+        gameState.currentY++;
+      } else {
+        mergePiece();
+        gameState.currentPiece = null;
+      }
+      
+      drawBoard();
+    }
+
+    function startGame() {
+      const nameInput = document.getElementById('playerName');
+      if (!nameInput.value.trim()) {
+        nameInput.style.borderColor = '#ff0000';
+        setTimeout(() => nameInput.style.borderColor = '#ff00ff', 500);
+        return;
+      }
+      
+      gameState.playerName = nameInput.value.trim();
+      gameState.score = 0;
+      gameState.timeLeft = GAME_DURATION;
+      gameState.usedQuestions.clear();
+      gameState.answeredQuestions = [];
+      gameState.isPaused = false;
+      
+      document.getElementById('currentPlayer').textContent = gameState.playerName;
+      updateScore();
+      
+      initBoard();
+      
+      document.getElementById('startScreen').classList.remove('active');
+      document.getElementById('gameScreen').classList.add('active');
+      
+      resumeGame();
+      
+      document.addEventListener('keydown', handleKeyPress);
+    }
+
+    function handleKeyPress(e) {
+      if (gameState.isPaused || !gameState.currentPiece) return;
+      
+      if (e.key === 'ArrowLeft') {
+        if (canMove(gameState.currentPiece, gameState.currentX - 1, gameState.currentY)) {
+          gameState.currentX--;
+          drawBoard();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (canMove(gameState.currentPiece, gameState.currentX + 1, gameState.currentY)) {
+          gameState.currentX++;
+          drawBoard();
+        }
+      } else if (e.key === 'ArrowDown') {
+        if (canMove(gameState.currentPiece, gameState.currentX, gameState.currentY + 1)) {
+          gameState.currentY++;
+          drawBoard();
+        }
+      } else if (e.key === 'ArrowUp') {
+        const rotated = rotatePiece(gameState.currentPiece);
+        if (canMove(rotated, gameState.currentX, gameState.currentY)) {
+          gameState.currentPiece = rotated;
+          drawBoard();
+        }
+      }
+    }
+
+    function toggleMenu() {
+      const menuOverlay = document.getElementById('menuOverlay');
+      const isActive = menuOverlay.classList.contains('active');
+      
+      if (!isActive) {
+        pauseGame();
+        updateAnsweredList();
+        menuOverlay.classList.add('active');
+      } else {
+        menuOverlay.classList.remove('active');
+        resumeGame();
+      }
+    }
+
+    function updateAnsweredList() {
+      const listEl = document.getElementById('answeredList');
+      
+      if (gameState.answeredQuestions.length === 0) {
+        listEl.innerHTML = '<div style="text-align: center; color: #888;">Belum ada soalan dijawab</div>';
+        return;
+      }
+      
+      listEl.innerHTML = gameState.answeredQuestions.map((item, index) => `
+        <div class="answered-item ${item.correct ? 'correct' : 'wrong'}">
+          <div style="font-weight: bold;">${index + 1}. ${item.question}</div>
+          <div style="margin-top: 5px;">Jawapan: ${item.answer} ${item.correct ? '✓' : '✗'}</div>
+        </div>
+      `).join('');
+    }
+
+    function exitGame() {
+      if (gameState.gameInterval) clearInterval(gameState.gameInterval);
+      if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+      
+      document.getElementById('menuOverlay').classList.remove('active');
+      document.getElementById('gameScreen').classList.remove('active');
+      document.getElementById('startScreen').classList.add('active');
+      
+      document.removeEventListener('keydown', handleKeyPress);
+    }
+
+    async function endGame() {
+      pauseGame();
+      
+      document.getElementById('gameScreen').classList.remove('active');
+      document.getElementById('endScreen').classList.add('active');
+      document.getElementById('finalScore').textContent = gameState.score + ' MATA';
+      
+      const motivationIndex = Math.floor(Math.random() * MOTIVATION_MESSAGES.length);
+      document.getElementById('motivationText').textContent = MOTIVATION_MESSAGES[motivationIndex];
+      
+      createCelebrationDucks();
+      
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => spawnDuck(), i * 400);
+      }
+      
+      document.removeEventListener('keydown', handleKeyPress);
+      
+      const result = await window.dataSdk.create({
+        player_name: gameState.playerName,
+        score: gameState.score,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (!result.isOk) {
+        console.error("Failed to save score");
+      }
+    }
+
+    function replayGame() {
+      document.getElementById('endScreen').classList.remove('active');
+      document.getElementById('startScreen').classList.add('active');
+      document.getElementById('playerName').value = gameState.playerName;
+    }
+
+    async function onConfigChange(config) {
+      const titleElement = document.getElementById('gameTitle');
+      const welcomeElement = document.getElementById('welcomeMessage');
+      
+      titleElement.textContent = config.game_title || defaultConfig.game_title;
+      welcomeElement.textContent = config.welcome_message || defaultConfig.welcome_message;
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["welcome_message", config.welcome_message || defaultConfig.welcome_message]
+        ])
+      });
+    }
+
+    function addDucksToElements() {
+      const duckSVG = createDuckSVG();
+      
+      document.querySelectorAll('.duck-header').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-corner').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-swim').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-bounce').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-spin').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-float').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-shake').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+      
+      document.querySelectorAll('.duck-pulse').forEach(el => {
+        el.innerHTML = duckSVG;
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+      addDucksToElements();
+    });
   </script>
-</body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a276bf7668326f2',t:'MTc2MzgwMzk2OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
