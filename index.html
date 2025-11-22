@@ -1,862 +1,281 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Permainan Tetris Peribahasa</title>
-    <!-- Muat naik Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Muat naik fon retro -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        /* Menggunakan fon retro untuk tajuk dan elemen UI */
-        .font-retro {
-            font-family: 'Press Start 2P', cursive;
-        }
-        
-        /* Menggunakan fon Inter untuk teks biasa (lebih mudah dibaca) */
-        body, .font-sans {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        /* Corak latar belakang retro */
-        body {
-            background-color: #1a1a2e; /* Biru gelap */
-            background-image: 
-                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0),
-                radial-gradient(circle at 10px 10px, rgba(255,255,255,0.05) 1px, transparent 0);
-            background-size: 20px 20px;
-            color: #e0e0e0; /* Teks putih pudar */
-        }
-        
-        /* Butang gaya retro */
-        .btn-retro {
-            display: inline-block;
-            padding: 12px 20px;
-            font-family: 'Press Start 2P', cursive;
-            font-size: 14px;
-            text-transform: uppercase;
-            color: #ffffff;
-            background-color: #1a1a2e;
-            border: 4px solid #f92a82; /* Pink neon */
-            box-shadow: 0 0 10px #f92a82, inset 0 0 10px #f92a82;
-            text-shadow: 0 0 5px #ffffff;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            text-align: center;
-        }
-        .btn-retro:hover {
-            background-color: #f92a82;
-            color: #1a1a2e;
-            box-shadow: 0 0 20px #f92a82;
-        }
-        
-        /* Butang jawapan */
-        .btn-answer {
-            background-color: #333;
-            border: 2px solid #555;
-            color: white;
-            transition: all 0.2s;
-        }
-        .btn-answer:hover {
-            border-color: #f92a82;
-        }
-        .btn-answer.correct {
-            background-color: #22c55e; /* Hijau */
-            border-color: #16a34a;
-            animation: pulse-correct 0.5s;
-        }
-        .btn-answer.wrong {
-            background-color: #ef4444; /* Merah */
-            border-color: #dc2626;
-            animation: shake 0.5s;
-        }
-
-        /* Animasi */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-        }
-        @keyframes pulse-correct {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        /* Modal */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background: #1a1a2e;
-            border: 4px solid #4af626; /* Hijau neon */
-            box-shadow: 0 0 15px #4af626, inset 0 0 10px #4af626;
-            padding: 2rem;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        /* Kanvas permainan */
-        canvas {
-            background-color: #111;
-            border: 4px solid #4af626; /* Hijau neon */
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tetris Peribahasa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Styling ringkas (ambik dari versi asal) */
+    :root { --bg: #1a1a2e; --panel:#0b0b12; --accent:#4af626; --pink:#f92a82; }
+    html,body{height:100%;margin:0;padding:0;background:var(--bg);color:#e0e0e0;font-family:'Inter',sans-serif}
+    .font-retro{font-family:'Press Start 2P',cursive}
+    .btn-retro{display:inline-block;padding:12px 16px;border:4px solid var(--pink);background:transparent;color:#fff;cursor:pointer;font-family:'Press Start 2P',cursive}
+    canvas{background:#111;border:4px solid var(--accent);display:block}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:999}
+    .modal-content{background:var(--bg);border:4px solid var(--accent);padding:1.5rem;max-width:700px;width:94%;max-height:90vh;overflow:auto}
+    .hidden{display:none}
+  </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-    <!-- Kontena Utama Permainan -->
-    <div id="game-container" class="w-full max-w-4xl p-4 md:p-8 rounded-lg" style="display: none;">
-        <h1 class="text-3xl md:text-5xl font-retro text-center mb-6" style="color: #f92a82; text-shadow: 0 0 10px #f92a82;">
-            TETRIS PERIBAHASA
-        </h1>
-        
-        <div class="flex flex-col md:flex-row gap-6">
-            
-            <!-- Bahagian Kiri (Skor & Kawalan) -->
-            <div class="w-full md:w-1/4 flex flex-col items-center">
-                <div class="font-retro text-lg text-center bg-black p-4 border-2 border-dashed border-yellow-400 w-full mb-4">
-                    <p class="text-yellow-400">MASA:</p>
-                    <p id="time-display" class="text-3xl text-white">3:00</p>
-                </div>
-                <div class="font-retro text-lg text-center bg-black p-4 border-2 border-dashed border-cyan-400 w-full mb-4">
-                    <p class="text-cyan-400">SKOR:</p>
-                    <p id="score-display" class="text-3xl text-white">0</p>
-                </div>
-                <div class="font-retro text-lg text-center bg-black p-4 border-2 border-dashed border-pink-400 w-full mb-4">
-                    <p class="text-pink-400">SKOR TERTINGGI:</p>
-                    <p id="highscore-display" class="text-3xl text-white">0</p>
-                </div>
-                
-                <button id="pause-button" class="btn-retro bg-yellow-500 border-yellow-500 shadow-yellow-500/50 hover:bg-yellow-500 w-full mb-4">Menu</button>
-            </div>
-            
-            <!-- Bahagian Tengah (Kanvas Tetris) -->
-            <div class="flex-1 flex justify-center items-start">
-                <canvas id="tetris-canvas" width="300" height="600"></canvas>
-            </div>
-
-            <!-- Bahagian Kanan (Kosong, mungkin untuk 'Next Piece' - tapi kita kosongkan untuk kejelasan) -->
-            <div class="hidden md:block md:w-1/4">
-                 <!-- Ruang ini sengaja dikosongkan agar visual tidak terhalang -->
-            </div>
+  <!-- MAIN GAME LAYOUT (sama seperti sebelumnya) -->
+  <div id="game-container" style="display:none; width:100%; max-width:980px;">
+    <h1 class="font-retro" style="text-align:center;color:var(--pink);font-size:28px;margin-bottom:16px;">TETRIS PERIBAHASA</h1>
+    <div style="display:flex;gap:16px;align-items:flex-start;">
+      <div style="width:220px">
+        <div style="background:#000;padding:12px;border:2px dashed #f59e0b;margin-bottom:12px;text-align:center;font-family: 'Press Start 2P';">
+          <div style="color:#f59e0b">MASA</div><div id="time-display" style="font-size:24px">3:00</div>
         </div>
-
-        <!-- Kawalan Mudah Alih (Mobile Controls) -->
-        <div class="md:hidden flex justify-around items-center mt-6">
-            <button id="move-left-btn" class="btn-retro p-4 text-xl">&lt;</button>
-            <button id="rotate-btn" class="btn-retro p-4 text-xl">^</button>
-            <button id="move-right-btn" class="btn-retro p-4 text-xl">&gt;</button>
-            <button id="move-down-btn" class="btn-retro p-4 text-xl">v</button>
+        <div style="background:#000;padding:12px;border:2px dashed #06b6d4;margin-bottom:12px;text-align:center;font-family: 'Press Start 2P';">
+          <div style="color:#06b6d4">SKOR</div><div id="score-display" style="font-size:24px">0</div>
         </div>
+        <div style="background:#000;padding:12px;border:2px dashed #fb7185;margin-bottom:12px;text-align:center;font-family: 'Press Start 2P';">
+          <div style="color:#fb7185">SKOR TERTINGGI</div><div id="highscore-display" style="font-size:24px">0</div>
+        </div>
+        <button id="pause-button" class="btn-retro" style="width:100%;margin-top:8px;">MENU</button>
+      </div>
+
+      <div style="flex:1;display:flex;justify-content:center;">
+        <canvas id="tetris-canvas" width="300" height="600"></canvas>
+      </div>
+
+      <div style="width:220px"></div>
     </div>
 
-    <!-- MODAL: Selamat Datang / Isi Nama -->
-    <div id="welcome-modal" class="modal flex">
-        <div class="modal-content text-center">
-            <h2 class="text-3xl font-retro text-yellow-400 mb-6">SELAMAT DATANG!</h2>
-            <p class="mb-4 text-lg">Sila masukkan nama anda untuk bermain:</p>
-            <input type="text" id="name-input" class="font-sans text-black text-lg p-3 rounded w-full mb-6" placeholder="Nama Pemain...">
-            <p id="name-error" class="text-red-400 text-sm mb-4 -mt-4" style="display: none;">Sila masukkan nama anda!</p>
-            <button id="start-button" class="btn-retro w-full mb-6">Mula Main!</button>
-            
-            <h3 class="text-2xl font-retro text-cyan-400 mb-4">LEADERBOARD</h3>
-            <div id="leaderboard-welcome" class="text-left bg-black p-4 rounded h-48 overflow-y-auto border border-cyan-400">
-                <!-- Data leaderboard akan diisi oleh JS -->
-                <p>Memuatkan data...</p>
-            </div>
-        </div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;" class="mobile-controls">
+      <button id="move-left-btn" class="btn-retro">&lt;</button>
+      <button id="rotate-btn" class="btn-retro">^</button>
+      <button id="move-right-btn" class="btn-retro">&gt;</button>
+      <button id="move-down-btn" class="btn-retro">v</button>
     </div>
+  </div>
 
-    <!-- MODAL: Kuiz Peribahasa -->
-    <div id="quiz-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 class="text-2xl font-retro text-yellow-400 mb-6 text-center">SOALAN PERIBAHASA!</h2>
-            <p id="question-text" class="font-sans text-xl mb-6 text-center"></p>
-            <div id="answer-options" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Butang jawapan akan diisi oleh JS -->
-            </div>
-        </div>
+  <!-- WELCOME / NAME modal -->
+  <div id="welcome-modal" class="modal">
+    <div class="modal-content text-center">
+      <h2 class="font-retro" style="color:#f59e0b;margin-bottom:12px;">SELAMAT DATANG!</h2>
+      <p>Sila masukkan nama anda untuk bermain:</p>
+      <input id="name-input" style="width:100%;padding:8px;margin:12px 0;border-radius:6px;border:1px solid #ccc;font-size:16px;color:#000" placeholder="Nama Pemain..." />
+      <p id="name-error" style="color:#f87171;display:none;margin-top:-8px;">Sila masukkan nama anda!</p>
+      <button id="start-button" class="btn-retro" style="width:100%;margin-top:12px;">Mula Main!</button>
+
+      <h3 class="font-retro" style="color:#06b6d4;margin-top:16px;">LEADERBOARD</h3>
+      <div id="leaderboard-welcome" style="background:#000;padding:12px;border:1px solid #06b6d4;border-radius:6px;height:160px;overflow:auto;margin-top:8px;text-align:left;">Memuatkan data...</div>
     </div>
+  </div>
 
-    <!-- MODAL: Menu Jeda (Pause) -->
-    <div id="pause-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 class="text-3xl font-retro text-yellow-400 mb-6 text-center">MENU</h2>
-            <button id="resume-button" class="btn-retro w-full mb-4">Sambung Main</button>
-            <button id="exit-button" class="btn-retro w-full mb-6 bg-red-600 border-red-600 shadow-red-600/50 hover:bg-red-600">Keluar</button>
-
-            <h3 class="text-2xl font-retro text-cyan-400 mb-4">SOALAN DIJAWAB</h3>
-            <div id="answered-questions-list" class="text-left bg-black p-4 rounded h-48 overflow-y-auto border border-cyan-400">
-                <!-- Senarai soalan akan diisi oleh JS -->
-                <p>Tiada soalan dijawab lagi.</p>
-            </div>
-        </div>
+  <!-- QUIZ modal -->
+  <div id="quiz-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="font-retro" style="text-align:center;color:#f59e0b;margin-bottom:8px;">SOALAN PERIBAHASA!</h2>
+      <p id="question-text" style="text-align:center;font-size:18px;margin-bottom:12px;"></p>
+      <div id="answer-options" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
     </div>
+  </div>
 
-    <!-- MODAL: Permainan Tamat -->
-    <div id="gameover-modal" class="modal" style="display: none;">
-        <div class="modal-content text-center">
-            <h2 class="text-3xl font-retro text-red-500 mb-4">PERMAINAN TAMAT!</h2>
-            <p id="funny-message" class="text-xl text-white mb-6">
-                <!-- Mesej lucu akan diisi oleh JS -->
-            </p>
-            <p class="font-retro text-2xl text-yellow-400 mb-6">SKOR AKHIR: <span id="final-score" class="text-white">0</span></p>
-            <button id="play-again-button" class="btn-retro w-full mb-6">Main Semula</button>
-            
-            <h3 class="text-2xl font-retro text-cyan-400 mb-4">LEADERBOARD TERKINI</h3>
-            <div id="leaderboard-gameover" class="text-left bg-black p-4 rounded h-48 overflow-y-auto border border-cyan-400">
-                <!-- Data leaderboard akan diisi oleh JS -->
-            </div>
-        </div>
+  <!-- PAUSE modal -->
+  <div id="pause-modal" class="modal hidden">
+    <div class="modal-content text-center">
+      <h2 class="font-retro" style="color:#f59e0b;margin-bottom:12px;">MENU</h2>
+      <button id="resume-button" class="btn-retro" style="width:100%;margin-bottom:8px;">Sambung Main</button>
+      <button id="exit-button" class="btn-retro" style="width:100%;background:#ef4444;border-color:#ef4444;margin-bottom:8px;">Keluar</button>
+      <h3 class="font-retro" style="color:#06b6d4;margin-top:8px;">SOALAN DIJAWAB</h3>
+      <div id="answered-questions-list" style="background:#000;padding:12px;border:1px solid #06b6d4;border-radius:6px;height:160px;overflow:auto;margin-top:8px;text-align:left;">Tiada soalan dijawab lagi.</div>
     </div>
+  </div>
 
-    <!-- MODAL: Memuatkan Firebase -->
-    <div id="loading-modal" class="modal flex">
-        <div class="modal-content text-center">
-            <h2 class="text-2xl font-retro text-white">MEMUATKAN...</h2>
-            <p class="text-lg mt-4">Menyambung ke pangkalan data permainan...</p>
-        </div>
+  <!-- GAMEOVER modal -->
+  <div id="gameover-modal" class="modal hidden">
+    <div class="modal-content text-center">
+      <h2 class="font-retro" style="color:#ef4444;margin-bottom:8px;">PERMAINAN TAMAT!</h2>
+      <p id="funny-message" style="margin-bottom:12px;"></p>
+      <p class="font-retro" style="color:#f59e0b;margin-bottom:12px;">SKOR AKHIR: <span id="final-score">0</span></p>
+      <button id="play-again-button" class="btn-retro" style="width:100%;margin-bottom:8px;">Main Semula</button>
+      <h3 class="font-retro" style="color:#06b6d4;margin-top:8px;">LEADERBOARD TERKINI</h3>
+      <div id="leaderboard-gameover" style="background:#000;padding:12px;border:1px solid #06b6d4;border-radius:6px;height:160px;overflow:auto;margin-top:8px;text-align:left;"></div>
     </div>
+  </div>
 
-    <!-- Skrip Firebase -->
-    <script type="module">
-        // Import fungsi Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <!-- LOADING modal (used briefly) -->
+  <div id="loading-modal" class="modal hidden">
+    <div class="modal-content text-center">
+      <h2 class="font-retro">MEMUATKAN...</h2>
+      <p>Menyambung ke pangkalan data permainan...</p>
+    </div>
+  </div>
 
-        // --- KONFIGURASI FIREBASE (WAJIB ADA) ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+  <!-- ==========================================================
+       PLACE TO INJECT CONFIG (replace values with your Firebase config
+       if you want Firestore; OR set __sheets_webapp_url to point to
+       your deployed Apps Script endpoint for Google Sheets backend)
+       ==========================================================
+  -->
 
-        let db, auth, userId;
-        let isAuthReady = false;
+  <script>
+    // By default nothing is injected. When you host on GitHub Pages, edit this file
+    // and replace the placeholders below with your real values.
 
-        // Inisialisasi Firebase
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            setLogLevel('Debug');
-            console.log("Firebase initialized");
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
-            document.getElementById('loading-modal').innerHTML = `<div class="modal-content text-center"><h2 class="text-2xl font-retro text-red-500">RALAT</h2><p class="text-lg mt-4">Gagal memuatkan pangkalan data. Sila 'refresh'.</p></div>`;
-        }
-        
-        // --- PEMBOLEHUBAH PERMAINAN ---
-        const canvas = document.getElementById('tetris-canvas');
-        const ctx = canvas.getContext('2d');
-        const COLS = 10;
-        const ROWS = 20;
-        const BLOCK_SIZE = 30; // Saiz blok (lebar kanvas = COLS * BLOCK_SIZE)
-        
-        // Tetapan Kanvas
-        canvas.width = COLS * BLOCK_SIZE;
-        canvas.height = ROWS * BLOCK_SIZE;
-        ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
+    // Example Firebase (optional):
+    // window.__firebase_config = {
+    //   apiKey: "AIza...",
+    //   authDomain: "your-app.firebaseapp.com",
+    //   projectId: "your-project-id",
+    //   storageBucket: "your-project-id.appspot.com",
+    //   messagingSenderId: "...",
+    //   appId: "1:...:web:..."
+    // };
+    // window.__app_id = window.__firebase_config ? window.__firebase_config.projectId : 'default-app-id';
 
-        let board = createBoard();
-        let activePiece;
-        let score = 0;
-        let highScore = 0;
-        let timeLeft = 180; // 3 minit
-        let gameTimer;
-        let countdownTimer;
-        let isPaused = false;
-        let isGameOver = false;
-        let isQuizActive = false;
-        let playerName = "";
+    // Example Google Sheets WebApp URL (optional):
+    // window.__sheets_webapp_url = 'https://script.google.com/macros/s/AKfycbx.../exec';
+  </script>
 
-        let shuffledQuestions = [];
-        let currentQuestionIndex = 0;
-        let answeredQuestions = []; // Format: { question, answer, isCorrect }
-        
-        const leaderboardCollectionRef = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
+  <!-- MAIN SCRIPT (module) -->
+  <script type="module">
+    // Full game + leaderboard client.
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, query, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- BANK SOALAN PERIBAHASA (MUDAH) ---
-        const questions = [
-            { q: "Seseorang yang mempunyai niat tersembunyi di sebalik pertolongannya. Peribahasanya ialah...", o: ["Ada udang di sebalik batu", "Ada gula ada semut", "Air dicincang takkan putus", "Bagai aur dengan tebing"], a: 0 },
-            { q: "Orang yang suka membaca buku dipanggil...", o: ["Kaki bangku", "Ulat buku", "Kutu embun", "Kaki ayam"], a: 1 },
-            { q: "Maksud bagi peribahasa 'bagai aur dengan tebing' ialah...", o: ["Pergaduhan", "Suka membaca", "Hubungan yang erat dan saling membantu", "Orang yang malas"], a: 2 },
-            { q: "Seseorang yang tidak pandai bermain bola sering diejek sebagai...", o: ["Kaki bangku", "Kaki botol", "Kaki ayam", "Kaki gaduh"], a: 0 },
-            { q: "Peribahasa yang membawa maksud orang yang sempit pengetahuannya ialah...", o: ["Seperti katak di bawah tempurung", "Seperti anjing dengan kucing", "Seperti tikus membaiki labu", "Seperti kera mendapat bunga"], a: 0 },
-            { q: "Maksud 'ringan tulang' ialah...", o: ["Tulang yang ringan", "Sakit tulang", "Orang yang rajin bekerja", "Orang yang pemalas"], a: 2 },
-            { q: "Apakah maksud peribahasa 'mencari akal'?", o: ["Menjual otak", "Membeli akal", "Berfikir untuk menyelesaikan masalah", "Menjadi gila"], a: 2 },
-            { q: "Peribahasa untuk orang yang degil dan tidak mahu mendengar nasihat.", o: ["Hati batu", "Hati emas", "Buah hati", "Ambil hati"], a: 0 },
-            { q: "Pergaduhan antara adik-beradik tidak akan berpanjangan. Peribahasa yang sesuai ialah...", o: ["Bagai isi dengan kuku", "Air dicincang takkan putus", "Anak angkat", "Anak emas"], a: 1 },
-            { q: "Sikap tidak adil dalam membuat keputusan. Peribahasanya ialah...", o: ["Pilih kasih", "Pilih bulu", "Pilih-pilih", "Pilih hati"], a: 0 }
-        ];
+    // Read injected config (if any)
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const SHEETS_WEBAPP_URL = typeof __sheets_webapp_url !== 'undefined' ? __sheets_webapp_url : null;
 
-        // --- DOM ELEMENTS ---
-        const timeDisplay = document.getElementById('time-display');
-        const scoreDisplay = document.getElementById('score-display');
-        const highscoreDisplay = document.getElementById('highscore-display');
-        const welcomeModal = document.getElementById('welcome-modal');
-        const quizModal = document.getElementById('quiz-modal');
-        const pauseModal = document.getElementById('pause-modal');
-        const gameoverModal = document.getElementById('gameover-modal');
-        const loadingModal = document.getElementById('loading-modal');
-        const gameContainer = document.getElementById('game-container');
-        
-        // --- LOGIK TETRIS ---
-        const SHAPES = [
-            [[1,1,1,1]], // I
-            [[1,1],[1,1]], // O
-            [[0,1,0],[1,1,1]], // T
-            [[0,1,1],[1,1,0]], // S
-            [[1,1,0],[0,1,1]], // Z
-            [[1,0,0],[1,1,1]], // J
-            [[0,0,1],[1,1,1]] // L
-        ];
-        const COLORS = ['#f92a82', '#4af626', '#37e0ff', '#f8f32b', '#ff9f1a', '#a042ff', '#ffffff'];
+    let db = null, auth = null, userId = null;
+    let isAuthReady = false;
+    let useFirestore = false;
+    const useSheets = !!SHEETS_WEBAPP_URL;
 
-        function createBoard() {
-            return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-        }
+    // localStorage key
+    const LS_KEY = `tetris_leaderboard_${appId}`;
 
-        function newPiece() {
-            const rand = Math.floor(Math.random() * SHAPES.length);
-            return {
-                shape: SHAPES[rand],
-                color: COLORS[rand],
-                x: Math.floor(COLS / 2) - Math.floor(SHAPES[rand][0].length / 2),
-                y: 0
-            };
-        }
+    function parseFirebaseConfigHasProjectId(cfg){ try{return cfg && cfg.projectId;}catch(e){return false;} }
+    function getLeaderboardCollectionRef(){ if(!db) throw new Error('Firestore not initialized'); return collection(db, `artifacts/${appId}/public/data/leaderboard`); }
 
-        function draw() {
-            if (isPaused || isGameOver) return;
-            
-            // Latar belakang
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    try{
+      if(!useSheets && parseFirebaseConfigHasProjectId(firebaseConfig)){
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        try{ setLogLevel('Debug'); }catch(e){}
+        useFirestore = true;
+        console.log('Firebase initialized — Firestore enabled');
+      } else if(useSheets){
+        console.log('Using Google Sheets webapp for leaderboard (SHEETS_WEBAPP_URL provided)');
+      } else {
+        console.warn('No Firebase config and no Sheets URL — using localStorage fallback');
+      }
+    }catch(e){
+      console.error('Firebase initialization failed:', e);
+      useFirestore = false;
+    }
 
-            // Lukis papan (blok yang dah 'lock')
-            board.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value > 0) { // value akan jadi index warna + 1
-                        ctx.fillStyle = COLORS[value - 1];
-                        ctx.fillRect(x, y, 1, 1);
-                        ctx.strokeStyle = '#111';
-                        ctx.lineWidth = 0.1;
-                        ctx.strokeRect(x, y, 1, 1);
-                    }
-                });
-            });
+    // --- Game variables ---
+    const canvas = document.getElementById('tetris-canvas');
+    const ctx = canvas.getContext('2d');
+    const COLS = 10, ROWS = 20, BLOCK_SIZE = 30;
+    canvas.width = COLS * BLOCK_SIZE; canvas.height = ROWS * BLOCK_SIZE; ctx.scale(BLOCK_SIZE, BLOCK_SIZE);
 
-            // Lukis blok aktif
-            if (activePiece) {
-                ctx.fillStyle = activePiece.color;
-                activePiece.shape.forEach((row, y) => {
-                    row.forEach((value, x) => {
-                        if (value) {
-                            ctx.fillRect(activePiece.x + x, activePiece.y + y, 1, 1);
-                            ctx.strokeStyle = '#111';
-                            ctx.lineWidth = 0.1;
-                            ctx.strokeRect(activePiece.x + x, activePiece.y + y, 1, 1);
-                        }
-                    });
-                });
-            }
-        }
+    let board = createBoard(); let activePiece; let score = 0; let highScore = 0; let timeLeft = 180; let gameTimer; let countdownTimer; let isPaused=false; let isGameOver=false; let isQuizActive=false; let playerName='';
+    let shuffledQuestions = []; let currentQuestionIndex = 0; let answeredQuestions = [];
 
-        function moveDown() {
-            if (isPaused || isGameOver || isQuizActive) return;
+    const questions = [
+      { q: "Seseorang yang mempunyai niat tersembunyi di sebalik pertolongannya. Peribahasanya ialah...", o: ["Ada udang di sebalik batu", "Ada gula ada semut", "Air dicincang takkan putus", "Bagai aur dengan tebing"], a: 0 },
+      { q: "Orang yang suka membaca buku dipanggil...", o: ["Kaki bangku", "Ulat buku", "Kutu embun", "Kaki ayam"], a: 1 },
+      { q: "Maksud bagi peribahasa 'bagai aur dengan tebing' ialah...", o: ["Pergaduhan", "Suka membaca", "Hubungan yang erat dan saling membantu", "Orang yang malas"], a: 2 },
+      { q: "Seseorang yang tidak pandai bermain bola sering diejek sebagai...", o: ["Kaki bangku", "Kaki botol", "Kaki ayam", "Kaki gaduh"], a: 0 },
+      { q: "Peribahasa yang membawa maksud orang yang sempit pengetahuannya ialah...", o: ["Seperti katak di bawah tempurung", "Seperti anjing dengan kucing", "Seperti tikus membaiki labu", "Seperti kera mendapat bunga"], a: 0 },
+      { q: "Maksud 'ringan tulang' ialah...", o: ["Tulang yang ringan", "Sakit tulang", "Orang yang rajin bekerja", "Orang yang pemalas"], a: 2 },
+      { q: "Apakah maksud peribahasa 'mencari akal'?", o: ["Menjual otak", "Membeli akal", "Berfikir untuk menyelesaikan masalah", "Menjadi gila"], a: 2 },
+      { q: "Peribahasa untuk orang yang degil dan tidak mahu mendengar nasihat.", o: ["Hati batu", "Hati emas", "Buah hati", "Ambil hati"], a: 0 },
+      { q: "Pergaduhan antara adik-beradik tidak akan berpanjangan. Peribahasa yang sesuai ialah...", o: ["Bagai isi dengan kuku", "Air dicincang takkan putus", "Anak angkat", "Anak emas"], a: 1 },
+      { q: "Sikap tidak adil dalam membuat keputusan. Peribahasanya ialah...", o: ["Pilih kasih", "Pilih bulu", "Pilih-pilih", "Pilih hati"], a: 0 }
+    ];
 
-            if (checkCollision(activePiece.x, activePiece.y + 1, activePiece.shape)) {
-                // Tak boleh gerak, lock piece
-                lockPiece();
-                checkLines();
-                activePiece = newPiece();
-                if (checkCollision(activePiece.x, activePiece.y, activePiece.shape)) {
-                    // Game Over
-                    endGame();
-                }
-            } else {
-                activePiece.y++;
-            }
-            draw();
-        }
+    // DOM refs
+    const timeDisplay = document.getElementById('time-display');
+    const scoreDisplay = document.getElementById('score-display');
+    const highscoreDisplay = document.getElementById('highscore-display');
+    const welcomeModal = document.getElementById('welcome-modal');
+    const quizModal = document.getElementById('quiz-modal');
+    const pauseModal = document.getElementById('pause-modal');
+    const gameoverModal = document.getElementById('gameover-modal');
+    const loadingModal = document.getElementById('loading-modal');
+    const gameContainer = document.getElementById('game-container');
 
-        function moveHorizontal(dir) {
-            if (isPaused || isGameOver || isQuizActive) return;
-            if (!checkCollision(activePiece.x + dir, activePiece.y, activePiece.shape)) {
-                activePiece.x += dir;
-            }
-            draw();
-        }
+    const SHAPES = [ [[1,1,1,1]], [[1,1],[1,1]], [[0,1,0],[1,1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]], [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]] ];
+    const COLORS = ['#f92a82','#4af626','#37e0ff','#f8f32b','#ff9f1a','#a042ff','#ffffff'];
 
-        function rotatePiece() {
-            if (isPaused || isGameOver || isQuizActive) return;
-            
-            const N = activePiece.shape[0].length;
-            const M = activePiece.shape.length;
-            const newShape = Array.from({ length: N }, () => Array(M).fill(0));
+    function createBoard(){ return Array.from({length:ROWS},()=>Array(COLS).fill(0)); }
+    function newPiece(){ const r=Math.floor(Math.random()*SHAPES.length); return { shape: SHAPES[r], color: COLORS[r], x: Math.floor(COLS/2)-Math.floor(SHAPES[r][0].length/2), y:0 }; }
 
-            for (let r = 0; r < M; r++) {
-                for (let c = 0; c < N; c++) {
-                    newShape[c][M - 1 - r] = activePiece.shape[r][c];
-                }
-            }
-            
-            // Check collision selepas pusing (dan 'wall kick' sikit)
-            if (!checkCollision(activePiece.x, activePiece.y, newShape)) {
-                activePiece.shape = newShape;
-            } else if (!checkCollision(activePiece.x + 1, activePiece.y, newShape)) { // Kick kanan
-                activePiece.x++;
-                activePiece.shape = newShape;
-            } else if (!checkCollision(activePiece.x - 1, activePiece.y, newShape)) { // Kick kiri
-                activePiece.x--;
-                activePiece.shape = newShape;
-            }
-            draw();
-        }
+    function draw(){ if(isPaused||isGameOver) return; ctx.fillStyle='#111'; ctx.fillRect(0,0,canvas.width,canvas.height); board.forEach((row,y)=>row.forEach((v,x)=>{ if(v){ ctx.fillStyle=COLORS[v-1]; ctx.fillRect(x,y,1,1); ctx.strokeStyle='#111'; ctx.lineWidth=0.1; ctx.strokeRect(x,y,1,1); } })); if(activePiece){ ctx.fillStyle=activePiece.color; activePiece.shape.forEach((row,y)=>row.forEach((v,x)=>{ if(v){ ctx.fillRect(activePiece.x+x,activePiece.y+y,1,1); ctx.strokeStyle='#111'; ctx.lineWidth=0.1; ctx.strokeRect(activePiece.x+x,activePiece.y+y,1,1); } })); } }
 
-        function checkCollision(x, y, shape) {
-            for (let r = 0; r < shape.length; r++) {
-                for (let c = 0; c < shape[r].length; c++) {
-                    if (shape[r][c]) {
-                        const newX = x + c;
-                        const newY = y + r;
-                        
-                        // Check sempadan
-                        if (newX < 0 || newX >= COLS || newY >= ROWS) {
-                            return true;
-                        }
-                        // Check papan (pastikan Y tidak negatif)
-                        if (newY >= 0 && board[newY][newX]) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
+    function moveDown(){ if(isPaused||isGameOver||isQuizActive) return; if(checkCollision(activePiece.x,activePiece.y+1,activePiece.shape)){ lockPiece(); checkLines(); activePiece=newPiece(); if(checkCollision(activePiece.x,activePiece.y,activePiece.shape)){ endGame(); } } else { activePiece.y++; } draw(); }
+    function moveHorizontal(dir){ if(isPaused||isGameOver||isQuizActive) return; if(!checkCollision(activePiece.x+dir,activePiece.y,activePiece.shape)) activePiece.x+=dir; draw(); }
+    function rotatePiece(){ if(isPaused||isGameOver||isQuizActive) return; const N=activePiece.shape[0].length; const M=activePiece.shape.length; const newShape=Array.from({length:N},()=>Array(M).fill(0)); for(let r=0;r<M;r++) for(let c=0;c<N;c++) newShape[c][M-1-r]=activePiece.shape[r][c]; if(!checkCollision(activePiece.x,activePiece.y,newShape)) activePiece.shape=newShape; else if(!checkCollision(activePiece.x+1,activePiece.y,newShape)){ activePiece.x++; activePiece.shape=newShape; } else if(!checkCollision(activePiece.x-1,activePiece.y,newShape)){ activePiece.x--; activePiece.shape=newShape; } draw(); }
 
-        function lockPiece() {
-            activePiece.shape.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value) {
-                        const boardX = activePiece.x + x;
-                        const boardY = activePiece.y + y;
-                        if (boardY >= 0) { // Hanya lock jika dalam papan
-                            board[boardY][boardX] = COLORS.indexOf(activePiece.color) + 1; // Simpan index warna + 1
-                        }
-                    }
-                });
-            });
-        }
+    function checkCollision(x,y,shape){ for(let r=0;r<shape.length;r++){ for(let c=0;c<shape[r].length;c++){ if(shape[r][c]){ const nx=x+c, ny=y+r; if(nx<0||nx>=COLS||ny>=ROWS) return true; if(ny>=0 && board[ny][nx]) return true; } } } return false; }
+    function lockPiece(){ activePiece.shape.forEach((row,y)=>row.forEach((v,x)=>{ if(v){ const bx=activePiece.x+x, by=activePiece.y+y; if(by>=0) board[by][bx]=COLORS.indexOf(activePiece.color)+1; } })); }
+    function checkLines(){ let linesCleared=0; for(let y=ROWS-1;y>=0;y--){ if(board[y].every(cell=>cell>0)){ linesCleared++; board.splice(y,1); board.unshift(Array(COLS).fill(0)); y++; } } if(linesCleared>0){ score += linesCleared * 100 * linesCleared; updateScoreUI(); pauseGame(true); showQuizModal(); } }
 
-        function checkLines() {
-            let linesCleared = 0;
-            for (let y = ROWS - 1; y >= 0; y--) {
-                if (board[y].every(cell => cell > 0)) {
-                    // Baris penuh
-                    linesCleared++;
-                    board.splice(y, 1); // Buang baris
-                    board.unshift(Array(COLS).fill(0)); // Tambah baris kosong di atas
-                    y++; // Semak baris yang sama sekali lagi (selepas anjakan)
-                }
-            }
-            
-            if (linesCleared > 0) {
-                // Tambah skor
-                score += linesCleared * 100 * linesCleared; // Bonus utk multi-line
-                updateScoreUI();
-                
-                // --- TRIGGER KUIZ ---
-                pauseGame(true); // Jeda permainan untuk kuiz
-                showQuizModal();
-            }
-        }
-        
-        // --- LOGIK KUIZ ---
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        }
+    function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+    function showQuizModal(){ isQuizActive=true; if(currentQuestionIndex>=shuffledQuestions.length){ currentQuestionIndex=0; shuffleArray(shuffledQuestions); } const q=shuffledQuestions[currentQuestionIndex]; document.getElementById('question-text').textContent=q.q; const opts=document.getElementById('answer-options'); opts.innerHTML=''; q.o.forEach((opt,i)=>{ const b=document.createElement('button'); b.textContent=opt; b.className='btn-retro'; b.style.display='block'; b.style.width='100%'; b.dataset.index=i; b.onclick=()=>checkAnswer(i,q.a,b); opts.appendChild(b); }); quizModal.classList.remove('hidden'); currentQuestionIndex++; }
 
-        function showQuizModal() {
-            isQuizActive = true;
-            
-            if (currentQuestionIndex >= shuffledQuestions.length) {
-                // Soalan dah habis, 'shuffle' balik
-                currentQuestionIndex = 0;
-                shuffleArray(shuffledQuestions);
-            }
-            
-            const q = shuffledQuestions[currentQuestionIndex];
-            document.getElementById('question-text').textContent = q.q;
-            
-            const optionsContainer = document.getElementById('answer-options');
-            optionsContainer.innerHTML = '';
-            
-            q.o.forEach((option, index) => {
-                const button = document.createElement('button');
-                button.textContent = option;
-                button.classList.add('btn-answer', 'font-sans', 'text-lg', 'p-4', 'rounded-lg', 'w-full');
-                button.dataset.index = index;
-                button.onclick = () => checkAnswer(index, q.a, button);
-                optionsContainer.appendChild(button);
-            });
-            
-            quizModal.style.display = 'flex';
-            currentQuestionIndex++;
-        }
+    function checkAnswer(selectedIndex, correctIndex, button){ const buttons=document.querySelectorAll('#answer-options .btn-retro'); buttons.forEach(b=>b.disabled=true); const qText=shuffledQuestions[currentQuestionIndex-1].q; const aText=shuffledQuestions[currentQuestionIndex-1].o[selectedIndex]; if(selectedIndex===correctIndex){ button.style.background='#22c55e'; score+=50; updateScoreUI(); answeredQuestions.push({q:qText,a:aText,isCorrect:true}); } else { button.style.background='#ef4444'; buttons.forEach(b=>{ if(parseInt(b.dataset.index)===correctIndex) b.style.background='#22c55e'; }); answeredQuestions.push({q:qText,a:aText,isCorrect:false}); } setTimeout(()=>{ quizModal.classList.add('hidden'); isQuizActive=false; resumeGame(); },1200); }
 
-        function checkAnswer(selectedIndex, correctIndex, button) {
-            // Matikan semua butang
-            const buttons = document.querySelectorAll('.btn-answer');
-            buttons.forEach(btn => btn.disabled = true);
-            
-            const qText = shuffledQuestions[currentQuestionIndex - 1].q;
-            const aText = shuffledQuestions[currentQuestionIndex - 1].o[selectedIndex];
+    function startGame(){ board=createBoard(); activePiece=newPiece(); score=0; timeLeft=180; isGameOver=false; isPaused=false; isQuizActive=false; currentQuestionIndex=0; answeredQuestions=[]; shuffledQuestions=[...questions]; shuffleArray(shuffledQuestions); if(gameTimer) clearInterval(gameTimer); gameTimer=setInterval(moveDown,1000); if(countdownTimer) clearInterval(countdownTimer); countdownTimer=setInterval(updateTimer,1000); updateScoreUI(); updateTimerDisplay(); fetchHighScore(); welcomeModal.classList.add('hidden'); gameoverModal.classList.add('hidden'); gameContainer.style.display='block'; }
+    function updateTimer(){ if(isPaused||isGameOver||isQuizActive) return; timeLeft--; updateTimerDisplay(); if(timeLeft<=0) endGame(); }
+    function pauseGame(forQuiz=false){ if(isGameOver) return; isPaused=true; clearInterval(gameTimer); clearInterval(countdownTimer); if(!forQuiz){ updateAnsweredQuestionsList(); pauseModal.classList.remove('hidden'); } }
+    function resumeGame(){ if(isGameOver) return; isPaused=false; pauseModal.classList.add('hidden'); if(gameTimer) clearInterval(gameTimer); gameTimer=setInterval(moveDown,1000); if(countdownTimer) clearInterval(countdownTimer); countdownTimer=setInterval(updateTimer,1000); }
+    function endGame(){ isGameOver=true; clearInterval(gameTimer); clearInterval(countdownTimer); document.getElementById('final-score').textContent=score; const msgs=["Hebat! Tapi jangan lupa kerja sekolah.","Wow! Anda mungkin pro Tetris, tapi adakah anda pro peribahasa?","Skor anda lebih tinggi dari cita-cita saya. Sikitlah.","Anda telah membuktikan bahawa main game sambil belajar itu boleh!","Masa dah tamat! Pergi minum air."]; document.getElementById('funny-message').textContent=msgs[Math.floor(Math.random()*msgs.length)]; saveScoreToStorage(); fetchLeaderboard(document.getElementById('leaderboard-gameover')); gameoverModal.classList.remove('hidden'); }
 
-            if (selectedIndex === correctIndex) {
-                button.classList.add('correct');
-                score += 50; // Skor bonus jawapan betul
-                updateScoreUI();
-                answeredQuestions.push({ q: qText, a: aText, isCorrect: true });
-            } else {
-                button.classList.add('wrong');
-                // Tunjukkan jawapan betul
-                buttons.forEach(btn => {
-                    if (parseInt(btn.dataset.index) === correctIndex) {
-                        btn.classList.add('correct');
-                    }
-                });
-                answeredQuestions.push({ q: qText, a: aText, isCorrect: false });
-            }
-            
-            // Tutup modal selepas 2 saat
-            setTimeout(() => {
-                quizModal.style.display = 'none';
-                isQuizActive = false;
-                resumeGame();
-            }, 2000);
-        }
+    function updateScoreUI(){ scoreDisplay.textContent=score; if(score>highScore){ highScore=score; highscoreDisplay.textContent=highScore; } }
+    function updateTimerDisplay(){ const m=Math.floor(timeLeft/60); const s=timeLeft%60; timeDisplay.textContent=`${m}:${s<10?'0':''}${s}`; }
+    function updateAnsweredQuestionsList(){ const list=document.getElementById('answered-questions-list'); if(answeredQuestions.length===0){ list.innerHTML='<p>Tiada soalan dijawab lagi.</p>'; return; } list.innerHTML=''; answeredQuestions.forEach(item=>{ const div=document.createElement('div'); div.style.padding='6px'; div.style.borderBottom='1px solid #2d2d2d'; const qText=item.q.length>50?item.q.substring(0,50)+'...':item.q; const color=item.isCorrect?'#22c55e':'#ef4444'; div.innerHTML=`<div style="font-weight:bold;color:${color}">${item.isCorrect?'BETUL':'SALAH'}</div><div style="font-size:12px">${qText}</div><div style="font-style:italic;font-size:12px">Jawapan anda: ${item.a}</div>`; list.appendChild(div); }); }
 
-        // --- LOGIK ALIRAN PERMAINAN ---
-        function startGame() {
-            // Reset semua
-            board = createBoard();
-            activePiece = newPiece();
-            score = 0;
-            timeLeft = 180;
-            isGameOver = false;
-            isPaused = false;
-            isQuizActive = false;
-            currentQuestionIndex = 0;
-            answeredQuestions = [];
-            
-            // 'Shuffle' soalan
-            shuffledQuestions = [...questions];
-            shuffleArray(shuffledQuestions);
-            
-            // Mula 'loop'
-            if (gameTimer) clearInterval(gameTimer);
-            gameTimer = setInterval(moveDown, 1000); // Gerak ke bawah setiap 1 saat
-            
-            if (countdownTimer) clearInterval(countdownTimer);
-            countdownTimer = setInterval(updateTimer, 1000);
-            
-            updateScoreUI();
-            updateTimerDisplay();
-            fetchHighScore(); // Dapatkan high score dari data sedia ada
-            
-            // Sembunyi/Tunjuk Modal
-            welcomeModal.style.display = 'none';
-            gameoverModal.style.display = 'none';
-            gameContainer.style.display = 'block';
-        }
+    // --- Leaderboard implementations (Sheets / Firestore / localStorage) ---
+    async function initAuthAndLeaderboard(){
+      if(useSheets){ loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); fetchLeaderboardSheets(document.getElementById('leaderboard-welcome')); return; }
+      if(useFirestore){ try{ if(!auth) auth = getAuth(); onAuthStateChanged(auth,(user)=>{ if(user){ userId=user.uid; isAuthReady=true; fetchLeaderboardFirestore(document.getElementById('leaderboard-welcome')); loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); } }); if(initialAuthToken) await signInWithCustomToken(auth, initialAuthToken); else await signInAnonymously(auth); }catch(e){ console.error('Auth failed, falling back to localStorage:',e); useFirestore=false; loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); fetchLeaderboardLocal(document.getElementById('leaderboard-welcome')); } } else { loadingModal.classList.add('hidden'); welcomeModal.classList.remove('hidden'); fetchLeaderboardLocal(document.getElementById('leaderboard-welcome')); } }
 
-        function updateTimer() {
-            if (isPaused || isGameOver || isQuizActive) return;
-            
-            timeLeft--;
-            updateTimerDisplay();
-            
-            if (timeLeft <= 0) {
-                endGame();
-            }
-        }
+    // Firestore functions
+    async function fetchLeaderboardFirestore(container){ if(!useFirestore) throw new Error('Firestore disabled'); container.innerHTML='<p>Memuatkan data...</p>'; try{ const colRef = getLeaderboardCollectionRef(); const qref = query(colRef); const snap = await getDocs(qref); let arr=[]; snap.forEach(d=>arr.push(d.data())); arr.sort((a,b)=>b.score - a.score); arr = arr.slice(0,10); if(arr.length===0){ container.innerHTML='<p>Tiada data lagi. Jadilah yang pertama!</p>'; return; } highScore = arr[0].score||0; highscoreDisplay.textContent=highScore; container.innerHTML=''; arr.forEach((it,idx)=>{ const e=document.createElement('div'); e.style.display='flex'; e.style.justifyContent='space-between'; e.style.padding='4px 0'; e.innerHTML=`<div style="color:${idx===0?'#f59e0b':idx===1?'#c7c7c7':idx===2?'#fbbf24':'#fff'}">${idx+1}. ${it.name}</div><div style="color:#06b6d4">${it.score}</div>`; container.appendChild(e); }); }catch(e){ console.error('Fetch Firestore failed',e); container.innerHTML='<p>Gagal memuatkan leaderboard.</p>'; } }
+    async function saveScoreFirestore(){ if(!useFirestore) throw new Error('Firestore disabled'); const colRef = getLeaderboardCollectionRef(); await addDoc(colRef,{ name: playerName, score: score, createdAt: serverTimestamp(), userId: userId }); }
 
-        function pauseGame(forQuiz = false) {
-            if (isGameOver) return;
-            
-            isPaused = true;
-            clearInterval(gameTimer);
-            clearInterval(countdownTimer);
-            
-            if (!forQuiz) {
-                // Update senarai soalan dijawab
-                updateAnsweredQuestionsList();
-                pauseModal.style.display = 'flex';
-            }
-        }
+    // Sheets functions
+    async function fetchLeaderboardSheets(container){ container.innerHTML='<p>Memuatkan data...</p>'; if(!SHEETS_WEBAPP_URL){ container.innerHTML='<p>Sheets endpoint tidak disediakan.</p>'; return; } try{ const res = await fetch(`${SHEETS_WEBAPP_URL}?action=list`); const json = await res.json(); if(!json.ok){ container.innerHTML='<p>Gagal memuatkan leaderboard dari Sheets.</p>'; return; } const items = (json.items || []).slice().sort((a,b)=>b.score - a.score).slice(0,10); if(items.length===0){ container.innerHTML='<p>Tiada data lagi. Jadilah yang pertama!</p>'; return; } highScore = items[0].score || 0; highscoreDisplay.textContent = highScore; container.innerHTML=''; items.forEach((it,idx)=>{ const e=document.createElement('div'); e.style.display='flex'; e.style.justifyContent='space-between'; e.style.padding='4px 0'; e.innerHTML=`<div style="color:${idx===0?'#f59e0b':idx===1?'#c7c7c7':idx===2?'#fbbf24':'#fff'}">${idx+1}. ${it.name}</div><div style="color:#06b6d4">${it.score}</div>`; container.appendChild(e); }); }catch(e){ console.error('Fetch sheets failed',e); container.innerHTML='<p>Gagal memuatkan leaderboard.</p>'; } }
+    async function saveScoreSheets(){ if(!SHEETS_WEBAPP_URL || !playerName) return; try{ await fetch(SHEETS_WEBAPP_URL,{ method:'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action:'save', name: playerName, score: score }) }); console.log('Saved to Sheets'); }catch(e){ console.error('Save to Sheets failed', e); } }
 
-        function resumeGame() {
-            if (isGameOver) return;
-            
-            isPaused = false;
-            pauseModal.style.display = 'none';
-            
-            if (gameTimer) clearInterval(gameTimer);
-            gameTimer = setInterval(moveDown, 1000);
-            
-            if (countdownTimer) clearInterval(countdownTimer);
-            countdownTimer = setInterval(updateTimer, 1000);
-        }
+    // LocalStorage functions
+    function readLocalLeaderboard(){ try{ const raw = localStorage.getItem(LS_KEY); if(!raw) return []; return JSON.parse(raw); }catch(e){ localStorage.removeItem(LS_KEY); return []; } }
+    function writeLocalLeaderboard(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+    async function fetchLeaderboardLocal(container){ container.innerHTML='<p>Memuatkan data...</p>'; try{ const arr = readLocalLeaderboard().slice().sort((a,b)=>b.score - a.score).slice(0,10); if(arr.length===0){ container.innerHTML='<p>Tiada data lagi. Jadilah yang pertama!</p>'; return; } highScore = arr[0].score||0; highscoreDisplay.textContent = highScore; container.innerHTML=''; arr.forEach((it,idx)=>{ const e=document.createElement('div'); e.style.display='flex'; e.style.justifyContent='space-between'; e.style.padding='4px 0'; e.innerHTML=`<div style="color:${idx===0?'#f59e0b':idx===1?'#c7c7c7':idx===2?'#fbbf24':'#fff'}">${idx+1}. ${it.name}</div><div style="color:#06b6d4">${it.score}</div>`; container.appendChild(e); }); }catch(e){ container.innerHTML='<p>Gagal memuatkan leaderboard.</p>'; } }
+    async function saveScoreLocal(){ try{ if(!playerName) return; const arr = readLocalLeaderboard(); arr.push({ name: playerName, score: score, createdAt: new Date().toISOString() }); writeLocalLeaderboard(arr); console.log('Saved to localStorage'); }catch(e){ console.error('Failed local save', e); } }
 
-        function endGame() {
-            isGameOver = true;
-            clearInterval(gameTimer);
-            clearInterval(countdownTimer);
-            
-            document.getElementById('final-score').textContent = score;
-            
-            // Mesej lucu
-            const messages = [
-                "Hebat! Tapi jangan lupa kerja sekolah.",
-                "Wow! Anda mungkin pro Tetris, tapi adakah anda pro peribahasa?",
-                "Skor anda lebih tinggi dari cita-cita saya. Sikitlah.",
-                "Anda telah membuktikan bahawa main game sambil belajar itu boleh!",
-                "Masa dah tamat! Pergi minum air."
-            ];
-            document.getElementById('funny-message').textContent = messages[Math.floor(Math.random() * messages.length)];
-            
-            // Simpan skor & muat semula leaderboard
-            saveScoreToFirestore();
-            fetchLeaderboard(document.getElementById('leaderboard-gameover'));
-            
-            gameoverModal.style.display = 'flex';
-        }
+    // wrapper
+    async function fetchLeaderboard(container){ if(useSheets) return fetchLeaderboardSheets(container); if(useFirestore) return fetchLeaderboardFirestore(container); return fetchLeaderboardLocal(container); }
+    async function saveScoreToStorage(){ if(useSheets){ try{ await saveScoreSheets(); }catch(e){ console.error('Sheets save failed, fallback local',e); await saveScoreLocal(); } return; } if(useFirestore){ try{ await saveScoreFirestore(); }catch(e){ console.error('Firestore save failed, fallback local',e); await saveScoreLocal(); } return; } await saveScoreLocal(); }
 
-        // --- FUNGSI UI ---
-        function updateScoreUI() {
-            scoreDisplay.textContent = score;
-            if (score > highScore) {
-                highScore = score;
-                highscoreDisplay.textContent = highScore;
-            }
-        }
+    // event listeners
+    document.getElementById('start-button').onclick = ()=>{ playerName = document.getElementById('name-input').value.trim(); const nameError = document.getElementById('name-error'); if(!playerName){ nameError.style.display='block'; return; } nameError.style.display='none'; startGame(); };
+    document.getElementById('play-again-button').onclick = ()=> startGame();
+    document.getElementById('pause-button').onclick = ()=> pauseGame(false);
+    document.getElementById('resume-button').onclick = ()=> resumeGame();
+    document.getElementById('exit-button').onclick = ()=>{ isGameOver=true; clearInterval(gameTimer); clearInterval(countdownTimer); gameContainer.style.display='none'; pauseModal.classList.add('hidden'); fetchLeaderboard(document.getElementById('leaderboard-welcome')); welcomeModal.classList.remove('hidden'); };
+    document.addEventListener('keydown',(e)=>{ if(isPaused||isGameOver||isQuizActive) return; if(e.key==='ArrowLeft') moveHorizontal(-1); else if(e.key==='ArrowRight') moveHorizontal(1); else if(e.key==='ArrowDown'){ moveDown(); score+=1; updateScoreUI(); } else if(e.key==='ArrowUp') rotatePiece(); });
+    document.getElementById('move-left-btn').onclick = ()=> moveHorizontal(-1);
+    document.getElementById('move-right-btn').onclick = ()=> moveHorizontal(1);
+    document.getElementById('rotate-btn').onclick = ()=> rotatePiece();
+    document.getElementById('move-down-btn').onclick = ()=> moveDown();
 
-        function updateTimerDisplay() {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            timeDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
-        
-        function updateAnsweredQuestionsList() {
-            const listContainer = document.getElementById('answered-questions-list');
-            if (answeredQuestions.length === 0) {
-                listContainer.innerHTML = '<p>Tiada soalan dijawab lagi.</p>';
-                return;
-            }
-            
-            listContainer.innerHTML = '';
-            answeredQuestions.forEach(item => {
-                const div = document.createElement('div');
-                div.classList.add('p-2', 'border-b', 'border-gray-600');
-                const qText = item.q.length > 50 ? item.q.substring(0, 50) + '...' : item.q;
-                const color = item.isCorrect ? 'text-green-400' : 'text-red-400';
-                div.innerHTML = `
-                    <p class="font-bold ${color}">${item.isCorrect ? 'BETUL' : 'SALAH'}</p>
-                    <p class="text-sm">${qText}</p>
-                    <p class="text-sm italic">Jawapan anda: ${item.a}</p>
-                `;
-                listContainer.appendChild(div);
-            });
-        }
+    // initial load
+    window.onload = ()=>{ initAuthAndLeaderboard(); };
 
-        // --- LOGIK FIREBASE ---
-        async function initFirebase() {
-            if (!auth || !db) {
-                console.error("Firebase services not available.");
-                loadingModal.innerHTML = '<div class="modal-content text-center"><h2 class="text-2xl font-retro text-red-500">RALAT</h2><p class="text-lg mt-4">Gagal memuatkan pangkalan data.</p></div>';
-                return;
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    console.log("User is signed in:", user.uid);
-                    userId = user.uid;
-                    isAuthReady = true;
-                    // Muat leaderboard di skrin 'welcome'
-                    fetchLeaderboard(document.getElementById('leaderboard-welcome'));
-                    loadingModal.style.display = 'none';
-                    welcomeModal.style.display = 'flex';
-                }
-            });
-
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                loadingModal.innerHTML = `<div class="modal-content text-center"><h2 class="text-2xl font-retro text-red-500">RALAT</h2><p class="text-lg mt-4">Gagal 'authenticate'.</p></div>`;
-            }
-        }
-        
-        async function fetchLeaderboard(containerElement) {
-            if (!isAuthReady || !containerElement) return;
-            
-            containerElement.innerHTML = '<p>Memuatkan data...</p>';
-            
-            try {
-                const q = query(leaderboardCollectionRef); // Ambil semua
-                const snapshot = await getDocs(q);
-                
-                let leaderboardData = [];
-                snapshot.forEach(doc => {
-                    leaderboardData.push(doc.data());
-                });
-                
-                // Susun dalam kod (mengikut arahan)
-                leaderboardData.sort((a, b) => b.score - a.score);
-                
-                // Ambil 10 teratas
-                leaderboardData = leaderboardData.slice(0, 10);
-                
-                if (leaderboardData.length === 0) {
-                    containerElement.innerHTML = '<p>Tiada data lagi. Jadilah yang pertama!</p>';
-                    return;
-                }
-                
-                // Dapatkan high score global
-                highScore = leaderboardData.length > 0 ? leaderboardData[0].score : 0;
-                highscoreDisplay.textContent = highScore;
-                
-                // Paparkan di UI
-                containerElement.innerHTML = '';
-                leaderboardData.forEach((data, index) => {
-                    const entry = document.createElement('div');
-                    entry.classList.add('flex', 'justify-between', 'p-1', 'font-retro', 'text-sm');
-                    entry.innerHTML = `
-                        <span class="${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-300' : index === 2 ? 'text-yellow-600' : 'text-white'}">
-                            ${index + 1}. ${data.name}
-                        </span>
-                        <span class="text-cyan-400">${data.score}</span>
-                    `;
-                    containerElement.appendChild(entry);
-                });
-
-            } catch (e) {
-                console.error("Error fetching leaderboard: ", e);
-                containerElement.innerHTML = '<p>Gagal memuatkan leaderboard.</p>';
-            }
-        }
-        
-        async function fetchHighScore() {
-            // Fungsi ini hanya mengambil high score dari data yang telah dimuatkan
-            // Fungsi fetchLeaderboard() yang sebenar akan 'update' 'highScore'
-            highscoreDisplay.textContent = highScore;
-        }
-
-        async function saveScoreToFirestore() {
-            if (!isAuthReady || !playerName) {
-                console.log("Not saving score, auth not ready or no player name.");
-                return;
-            }
-            
-            try {
-                await addDoc(leaderboardCollectionRef, {
-                    name: playerName,
-                    score: score,
-                    createdAt: serverTimestamp(),
-                    userId: userId
-                });
-                console.log("Score saved!");
-            } catch (e) {
-                console.error("Error saving score: ", e);
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-        
-        // Mula Permainan
-        document.getElementById('start-button').onclick = () => {
-            playerName = document.getElementById('name-input').value;
-            const nameError = document.getElementById('name-error');
-            if (!playerName.trim()) {
-                // alert("Sila masukkan nama anda!"); // Tukar kpd modal kustom jika perlu
-                nameError.style.display = 'block';
-                return;
-            }
-            nameError.style.display = 'none';
-            startGame();
-        };
-        
-        // Main Semula
-        document.getElementById('play-again-button').onclick = () => {
-            startGame(); // Guna nama yang sama
-        };
-        
-        // Jeda & Keluar
-        document.getElementById('pause-button').onclick = () => pauseGame(false);
-        document.getElementById('resume-button').onclick = resumeGame;
-        document.getElementById('exit-button').onclick = () => {
-            // Reset ke skrin utama
-            isGameOver = true;
-            clearInterval(gameTimer);
-            clearInterval(countdownTimer);
-            gameContainer.style.display = 'none';
-            pauseModal.style.display = 'none';
-            // Muat semula leaderboard di skrin utama
-            fetchLeaderboard(document.getElementById('leaderboard-welcome'));
-            welcomeModal.style.display = 'flex';
-        };
-
-        // Kawalan (Keyboard)
-        document.addEventListener('keydown', (e) => {
-            if (isPaused || isGameOver || isQuizActive) return;
-            
-            if (e.key === 'ArrowLeft') {
-                moveHorizontal(-1);
-            } else if (e.key === 'ArrowRight') {
-                moveHorizontal(1);
-            } else if (e.key === 'ArrowDown') {
-                moveDown();
-                // Tambah skor sikit untuk 'soft drop'
-                score += 1; 
-                updateScoreUI();
-            } else if (e.key === 'ArrowUp') {
-                rotatePiece();
-            }
-        });
-        
-        // Kawalan (Mobile)
-        document.getElementById('move-left-btn').onclick = () => moveHorizontal(-1);
-        document.getElementById('move-right-btn').onclick = () => moveHorizontal(1);
-        document.getElementById('rotate-btn').onclick = rotatePiece;
-        document.getElementById('move-down-btn').onclick = moveDown;
-
-        // Muatkan Firebase semasa 'load'
-        window.onload = initFirebase;
-
-    </script>
+  </script>
 </body>
 </html>
